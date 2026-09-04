@@ -121,7 +121,7 @@ The Academic Workflow Agent works alongside the research workflow to track acade
 ## 👥 Team Members
 
 | Sr. No. | Name | TUF ID |
-|---|---|---|---|
+|---|---|---|
 | 1 | Aishwari Tokalwar | TU4F2324004 |
 | 2 | Sakshi Devkar | TU4F2324009 |
 | 3 | Utkarsha Pattebahadur | TU4F2324036 |
