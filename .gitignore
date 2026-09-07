@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Frontend Node dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
