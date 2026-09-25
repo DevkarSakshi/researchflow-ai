@@ -13,8 +13,8 @@ interface Props {
 export const AgentStatusCard: React.FC<Props> = ({ agent, onInspect }) => {
   const statusBadge = {
     completed: <Badge variant="emerald">Completed</Badge>,
-    running: <Badge variant="blue" pulse>Processing</Badge>,
-    pending: <Badge variant="slate">Queued</Badge>,
+    running: <Badge variant="blue" pulse>Running</Badge>,
+    pending: <Badge variant="slate">Pending</Badge>,
     failed: <Badge variant="rose">Failed</Badge>
   }[agent.status];
 

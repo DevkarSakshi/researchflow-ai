@@ -2,8 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 
 import { Login } from './pages/Login/Login';
+import { CreateAccount } from './pages/Login/CreateAccount';
 import { Dashboard } from './pages/Dashboard/Dashboard';
 import { Research } from './pages/Research/Research';
+import { FinalPlan } from './pages/FinalPlan/FinalPlan';
 import { Papers } from './pages/Papers/Papers';
 import { Comparison } from './pages/Comparison/Comparison';
 import { ResearchGap } from './pages/ResearchGap/ResearchGap';
@@ -18,11 +20,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/create-account" element={<CreateAccount />} />
         
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="workspace" element={<Research />} />
           <Route path="research" element={<Research />} />
+          <Route path="final-plan" element={<FinalPlan />} />
           <Route path="papers" element={<Papers />} />
           <Route path="comparison" element={<Comparison />} />
           <Route path="gaps" element={<ResearchGap />} />

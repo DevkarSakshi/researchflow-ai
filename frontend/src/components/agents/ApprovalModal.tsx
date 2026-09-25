@@ -93,7 +93,7 @@ export const ApprovalModal: React.FC<Props> = ({ isOpen, onClose, plan, onApprov
             Request Changes
           </Button>
           <Button variant="primary" size="sm" onClick={() => handleAction('approved')} disabled={submitting} icon={<CheckCircle2 className="w-4 h-4" />}>
-            Authorize & Execute Proposal
+            Approve Research Plan
           </Button>
         </div>
       </div>

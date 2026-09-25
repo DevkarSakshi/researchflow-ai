@@ -152,6 +152,7 @@ export interface FinalResearchPlan {
 
 export interface UserProfile {
   id: string;
+  researchFlowId: string;
   fullName: string;
   email: string;
   avatarUrl: string;
@@ -163,4 +164,6 @@ export interface UserProfile {
   gpa: string;
   researchInterests: string[];
   activeProjectName: string;
+  bio?: string;
 }
+

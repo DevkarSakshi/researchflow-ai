@@ -16,6 +16,7 @@ import type {
 
 export const mockUser: UserProfile = {
   id: 'usr_9021',
+  researchFlowId: 'RF-9021-STANFORD',
   fullName: 'Aishwari Sharma',
   email: 'aishwari.s@cs.university.edu',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -31,7 +32,8 @@ export const mockUser: UserProfile = {
     'Self-Reflective Reasoning in LLMs',
     'Graph Neural Networks for Scientific Discovery'
   ],
-  activeProjectName: 'ResearchFlow: Adaptive Multi-Agent Orchestration for Academic Synthesis'
+  activeProjectName: 'ResearchFlow: Adaptive Multi-Agent Orchestration for Academic Synthesis',
+  bio: 'Graduate researcher focusing on speculative decoding, verification loops, and autonomous multi-agent orchestration for scientific discovery.'
 };
 
 export const mockResearchAgents: ResearchAgent[] = [
