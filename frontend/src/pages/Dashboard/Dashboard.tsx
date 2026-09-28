@@ -1,13 +1,37 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { Bot, BookOpen, Clock, Award, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
 import { mockUser, mockAcademicDeadlines, mockResearchAgents } from '../../data/mockData';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
+import { request } from '../../services/api';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState(mockUser.fullName);
+
+useEffect(() => {
+  const loadUser = async () => {
+    try {
+      const result = await request<{
+        message: string;
+        user: {
+          name: string;
+          email: string;
+          researchflow_id: string;
+        };
+      }>('/auth/me');
+
+      setUserName(result.user.name);
+    } catch (error) {
+      console.error('Failed to load user:', error);
+    }
+  };
+
+  loadUser();
+}, []);
 
   return (
     <div className="space-y-8">
@@ -19,7 +43,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-xs text-slate-400 font-mono">Stanford AI Lab</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Welcome back, {mockUser.fullName.split(' ')[0]} 👋
+            Welcome back, {userName.split(' ')[0]} 👋
           </h1>
           <p className="text-xs md:text-sm text-slate-300 max-w-2xl leading-relaxed">
             Active Project: <strong className="text-white">{mockUser.activeProjectName}</strong>. 

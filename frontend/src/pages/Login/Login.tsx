@@ -3,21 +3,55 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Cpu, Lock, UserCheck, ArrowRight, KeyRound } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
+import { request } from '../../services/api';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [researchFlowId, setResearchFlowId] = useState('RF-9021-STANFORD');
-  const [password, setPassword] = useState('••••••••••••');
+  const [researchFlowId, setResearchFlowId] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
 
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    if (!researchFlowId.trim()) {
-      alert('Please enter your ResearchFlow ID');
-      return;
-    }
-    navigate('/dashboard');
+  async function handleLogin(e: React.FormEvent) {
+  e.preventDefault();
+
+  if (!researchFlowId.trim()) {
+    alert('Please enter your ResearchFlow ID');
+    return;
   }
+
+  if (!password.trim()) {
+    alert('Please enter your password');
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+    const result = await request<{
+      researchflow_id: string;
+      name: string;
+      access_token: string;
+      token_type: string;
+    }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        researchflow_id: researchFlowId,
+        password: password,
+      }),
+    });
+
+    localStorage.setItem('researchflow_token', result.access_token);
+    localStorage.setItem('researchflow_id', result.researchflow_id);
+    localStorage.setItem('researchflow_name', result.name);
+
+    navigate('/dashboard');
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('Login failed. Please check your ResearchFlow ID and password.');
+  } finally {
+  setIsLoading(false);
+  }
+}
 
   return (
     <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-4">
@@ -43,7 +77,7 @@ export const Login: React.FC = () => {
                 type="text" 
                 value={researchFlowId}
                 onChange={e => setResearchFlowId(e.target.value)}
-                placeholder="e.g. RF-9021-STANFORD"
+                placeholder="e.g. RF-8W66SL"
                 required
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-mono"
               />
@@ -67,6 +101,7 @@ export const Login: React.FC = () => {
                 type="password" 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password"
                 required
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
               />
@@ -74,7 +109,7 @@ export const Login: React.FC = () => {
           </div>
 
           <Button type="submit" className="w-full" icon={<ArrowRight className="w-4 h-4" />}>
-            Sign In to Research Environment
+            {isLoading ? 'Signing In...' : 'Sign In to Research Environment'}
           </Button>
         </form>
 
@@ -86,8 +121,8 @@ export const Login: React.FC = () => {
           </Link>
         </div>
 
-        <div className="text-center text-[11px] text-slate-500 bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/60 font-mono">
-          Demo Credential: <span className="text-slate-300 font-semibold">RF-9021-STANFORD</span> (Any password)
+        <div className="text-center text-[11px] text-slate-500 bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/60">
+          Use your ResearchFlow ID and password to sign in.
         </div>
       </div>
 

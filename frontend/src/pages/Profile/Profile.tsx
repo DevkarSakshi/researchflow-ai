@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Award, 
   BookOpen, 
@@ -16,6 +16,7 @@ import {
   Shield
 } from 'lucide-react';
 import { mockUser } from '../../data/mockData';
+import { request } from '../../services/api';
 import type { UserProfile } from '../../types';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
@@ -25,6 +26,39 @@ import { Modal } from '../../components/common/Modal';
 export const Profile: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile>(mockUser);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  useEffect(() => {
+  const loadUser = async () => {
+    try {
+      const result = await request<{
+        message: string;
+        user: {
+          name: string;
+          email: string;
+          researchflow_id: string;
+        };
+      }>('/auth/me');
+
+      setProfile(prev => ({
+        ...prev,
+        fullName: result.user.name,
+        email: result.user.email,
+        researchFlowId: result.user.researchflow_id,
+      }));
+
+      setFormData(prev => ({
+        ...prev,
+        fullName: result.user.name,
+        email: result.user.email,
+        researchFlowId: result.user.researchflow_id,
+      }));
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+    }
+  };
+
+  loadUser();
+}, []);
+
   const [copiedId, setCopiedId] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   

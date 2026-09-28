@@ -15,6 +15,16 @@ import { Reviewer } from './pages/Reviewer/Reviewer';
 import { Academic } from './pages/Academic/Academic';
 import { Profile } from './pages/Profile/Profile';
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('researchflow_token');
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -22,7 +32,14 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/create-account" element={<CreateAccount />} />
         
-        <Route path="/" element={<AppLayout />}>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="workspace" element={<Research />} />

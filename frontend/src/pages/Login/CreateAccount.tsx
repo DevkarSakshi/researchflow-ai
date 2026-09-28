@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Cpu, Lock, User, CheckCircle2, Copy, Check, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '../../components/common/Button';
+import { request } from '../../services/api';
 
 export const CreateAccount: React.FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+ async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
       alert('Please enter your full name');
@@ -26,11 +28,30 @@ export const CreateAccount: React.FC = () => {
       return;
     }
 
-    // Generate unique ResearchFlow ID as a frontend demo
-    const randomDigits = Math.floor(1000 + Math.random() * 9000);
-    const labCode = name.trim().split(' ')[0].toUpperCase();
-    const newId = `RF-${randomDigits}-${labCode}`;
-    setGeneratedId(newId);
+   try {
+      const result = await request<{
+        message: string;
+        user: {
+          name: string;
+          email: string;
+          researchflow_id: string;
+        };
+      }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      setGeneratedId(result.user.researchflow_id);
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert(
+        'Registration failed. Please check your details or try a different email.'
+      );
+    }
   }
 
   function copyToClipboard() {
@@ -116,7 +137,22 @@ export const CreateAccount: React.FC = () => {
                 />
               </div>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Email Address
+              </label>
 
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="e.g. student@example.com"
+                  required
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
                 Create Password

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -19,11 +19,36 @@ import {
   LogOut
 } from 'lucide-react';
 import { mockUser } from '../data/mockData';
+import { request } from '../services/api';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
 
 export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState(mockUser.fullName);
+const [researchFlowId, setResearchFlowId] = useState(mockUser.researchFlowId);
+
+useEffect(() => {
+  const loadUser = async () => {
+    try {
+      const result = await request<{
+        message: string;
+        user: {
+          name: string;
+          email: string;
+          researchflow_id: string;
+        };
+      }>('/auth/me');
+
+      setUserName(result.user.name);
+      setResearchFlowId(result.user.researchflow_id);
+    } catch (error) {
+      console.error('Failed to load user:', error);
+    }
+  };
+
+  loadUser();
+}, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('Gemini 1.5 Pro / Flash (Hybrid)');
   const [mockApiEnabled, setMockApiEnabled] = useState(true);
@@ -43,10 +68,14 @@ export const AppLayout: React.FC = () => {
   ];
 
   function handleLogout() {
-    if (confirm('Are you sure you want to log out of your ResearchFlow workspace?')) {
-      navigate('/login');
-    }
+  if (confirm('Are you sure you want to log out of your ResearchFlow workspace?')) {
+    localStorage.removeItem('researchflow_token');
+    localStorage.removeItem('researchflow_id');
+    localStorage.removeItem('researchflow_name');
+
+    navigate('/login');
   }
+}
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col md:flex-row">
@@ -124,8 +153,8 @@ export const AppLayout: React.FC = () => {
             className="w-9 h-9 rounded-full object-cover border border-slate-700" 
           />
           <div className="truncate flex-1">
-            <div className="text-xs font-semibold text-white truncate">{mockUser.fullName}</div>
-            <div className="text-[10px] text-blue-400 font-mono truncate">{mockUser.researchFlowId}</div>
+            <div className="text-xs font-semibold text-white truncate">{userName}</div>
+            <div className="text-[10px] text-blue-400 font-mono truncate">{researchFlowId}</div>
           </div>
         </div>
       </aside>

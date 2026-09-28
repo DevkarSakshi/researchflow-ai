@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ResearchAgent, FinalResearchPlan } from '../types';
 import { agentService } from '../services/agentService';
+import { request } from '../services/api';
 
 export function useAgents() {
   const [agents, setAgents] = useState<ResearchAgent[]>([]);
@@ -27,8 +28,14 @@ export function useAgents() {
   }
 
   async function runWorkflowSimulation(query: string) {
-    setIsRunning(true);
-    await agentService.triggerWorkflow(query);
+  setIsRunning(true);
+
+  await request('/research/start', {
+    method: 'POST',
+    body: JSON.stringify({
+      research_problem: query
+    })
+  });
 
     setAgents(prev => prev.map((a, i) => ({
       ...a,

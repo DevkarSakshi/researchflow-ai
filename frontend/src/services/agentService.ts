@@ -24,11 +24,8 @@ import type {
 
 export const agentService = {
   async getAllAgents(): Promise<ResearchAgent[]> {
-    if (USE_MOCK_DATA) {
-      return Promise.resolve(mockResearchAgents);
-    }
-    return request<ResearchAgent[]>('/agents/status');
-  },
+  return Promise.resolve(mockResearchAgents);
+},
 
   async triggerWorkflow(query: string): Promise<{ workflowId: string; status: string }> {
     if (USE_MOCK_DATA) {
@@ -74,8 +71,7 @@ export const agentService = {
   },
 
   async getFinalPlan(): Promise<FinalResearchPlan> {
-    if (USE_MOCK_DATA) return Promise.resolve(mockFinalPlan);
-    return request<FinalResearchPlan>('/research/plan');
+  return Promise.resolve(mockFinalPlan);
   },
 
   async submitPlanApproval(

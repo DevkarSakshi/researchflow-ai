@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Play, ShieldCheck, RefreshCw, FileText } from 'lucide-react';
 import { useAgents } from '../../hooks/useAgents';
+import { request } from '../../services/api';
 import { AgentWorkflowVisualizer } from '../../components/agents/AgentWorkflowVisualizer';
 import { AgentStatusCard } from '../../components/agents/AgentStatusCard';
 import { ApprovalModal } from '../../components/agents/ApprovalModal';
