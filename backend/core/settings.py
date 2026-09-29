@@ -15,6 +15,10 @@ class Settings(BaseModel):
         "DATABASE_NAME",
         "researchflow"
     )
+    gemini_api_key: str = os.getenv(
+    "GEMINI_API_KEY",
+    ""
+    )
     jwt_secret_key: str = os.getenv(
         "JWT_SECRET_KEY",
         "change-this-secret-key"
