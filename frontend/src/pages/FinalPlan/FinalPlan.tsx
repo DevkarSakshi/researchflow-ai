@@ -96,7 +96,94 @@ export const FinalPlan: React.FC = () => {
   }
 
   function exportPlan() {
-    alert('Exporting Final Synthesized Research Plan to LaTeX and Markdown...');
+    if (!plan) return;
+
+    const lines: string[] = [
+      `# Final Synthesized Research Plan`,
+      ``,
+      `**Plan ID:** ${plan.projectId}`,
+      `**Topic:** ${plan.topic}`,
+      `**Generated:** ${plan.generatedDate}`,
+      `**Approval Status:** ${plan.humanApprovalStatus}`,
+      ``,
+      `---`,
+      ``,
+      `## 1. Literature Agent Synthesis`,
+      ``,
+      ...papers.slice(0, 4).map(p =>
+        `### ${p.title} (${p.year})\n- **Authors:** ${p.authors.join(', ')}\n- **Venue:** ${p.venue}\n- **Summary:** ${p.summary}\n`
+      ),
+      `---`,
+      ``,
+      `## 2. Paper Intelligence Extraction`,
+      ``,
+      ...papers.slice(0, 3).map(p =>
+        `### ${p.title}\n- **Methodology:** ${p.methodology}\n- **Dataset:** ${p.dataset}\n- **Citation:** ${p.citation}\n`
+      ),
+      `---`,
+      ``,
+      `## 3. Comparison Matrix`,
+      ``,
+      `| Paper | Year | Methodology | Results | Limitations |`,
+      `|-------|------|-------------|---------|-------------|`,
+      ...comparisons.map(r =>
+        `| ${r.paperTitle} | ${r.year} | ${r.methodology} | ${r.results} | ${r.limitations} |`
+      ),
+      ``,
+      `---`,
+      ``,
+      `## 4. Research Gaps`,
+      ``,
+      ...gaps.map((g, i) =>
+        `### Gap ${i + 1}: ${g.title}\n${g.description}\n- **Impact Score:** ${g.impactScore}/10\n- **Feasibility Score:** ${g.feasibilityScore}/10\n`
+      ),
+      `---`,
+      ``,
+      `## 5. Suggested Research Ideas`,
+      ``,
+      ...ideas.map((idea, i) =>
+        `### Idea ${i + 1}: ${idea.title}\n**Hypothesis:** ${idea.coreHypothesis}\n**Rationale:** ${idea.rationale}\n- **Architecture:** ${idea.recommendedArchitecture}\n- **Effort:** ~${idea.estimatedEffortWeeks} weeks\n`
+      ),
+      `---`,
+      ``,
+      `## 6. Recommended Methodology`,
+      ``,
+      ...methodology.map(step =>
+        `### Step ${step.stepNumber}: ${step.title}\n${step.description}\n- **Inputs:** ${step.inputs.join(', ')}\n- **Outputs:** ${step.outputs.join(', ')}\n- **Tools:** ${step.recommendedTools.join(', ')}\n`
+      ),
+      `---`,
+      ``,
+      `## 7. Citations`,
+      ``,
+      ...citations.map((c, i) => `${i + 1}. ${c.authors} (${c.year}). *${c.paperTitle}*. ${c.format} — ${c.rawCitation}`),
+      ``,
+      `---`,
+      ``,
+      `## 8. Reviewer Feedback`,
+      ``,
+      ...reviewerFeedback.map(fb =>
+        `### ${fb.category} — ${fb.severity.toUpperCase()}\n**${fb.title}**\n${fb.detail}\n> Suggestion: ${fb.actionableSuggestion}\n`
+      ),
+      `---`,
+      ``,
+      `## Student Notes`,
+      ``,
+      studentNotes || '_No notes provided._',
+      ``,
+      `---`,
+      `*Exported by ResearchFlow AI — Autonomous Research Synthesis Platform*`,
+    ];
+
+    const content = lines.join('\n');
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ResearchFlow_Plan_${plan.projectId}_${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   if (loading || !plan) {
