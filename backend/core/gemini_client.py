@@ -1,6 +1,6 @@
 from google import genai
 
-from core.settings import settings
+from backend.core.settings import settings
 
 
 client = genai.Client(

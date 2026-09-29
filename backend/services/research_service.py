@@ -37,3 +37,28 @@ def create_research_workflow(
         "status": "started",
         "agents": workflow_data["agents"],
     }
+
+def update_research_approval(
+    researchflow_id: str,
+    approval_status: str
+) -> dict:
+    """
+    Update the approval status of a research workflow.
+    """
+
+    allowed_statuses = {
+        "pending",
+        "approved",
+        "changes_requested",
+        "rejected"
+    }
+
+    if approval_status not in allowed_statuses:
+        raise ValueError("Invalid approval status")
+
+    result = research_repository.update_approval_status(
+        researchflow_id,
+        approval_status
+    )
+
+    return result

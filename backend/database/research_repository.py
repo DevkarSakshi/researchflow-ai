@@ -30,3 +30,31 @@ def get_workflow_by_id(workflow_id):
     return research_collection.find_one(
         {"_id": workflow_id}
     )
+
+def update_approval_status(
+    researchflow_id: str,
+    approval_status: str
+) -> dict:
+    """
+    Update the approval status of a research workflow
+    in MongoDB.
+    """
+
+    result = collection.find_one_and_update(
+        {"researchflow_id": researchflow_id},
+        {
+            "$set": {
+                "approval_status": approval_status
+            }
+        },
+        return_document=True
+    )
+
+    if result is None:
+        raise ValueError(
+            "Research workflow not found"
+        )
+
+    result.pop("_id", None)
+
+    return result
