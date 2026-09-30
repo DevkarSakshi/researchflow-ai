@@ -79,13 +79,13 @@ export interface ResearchGap {
 }
 
 export interface SuggestedIdea {
-  id: string;
   title: string;
-  coreHypothesis: string;
+  core_hypothesis: string;
   rationale: string;
-  targetGapId: string;
-  recommendedArchitecture: string;
-  estimatedEffortWeeks: number;
+  architecture: string;
+  effort_weeks: string;
+  target: string;
+  source_gap: string;
 }
 
 export interface MethodologyStep {

@@ -313,22 +313,32 @@ export const mockResearchGaps: ResearchGap[] = [
 
 export const mockSuggestedIdeas: SuggestedIdea[] = [
   {
-    id: 'idea-01',
     title: 'Speculative Consensus Networks with Student-Calibrated Confidence Gates',
-    coreHypothesis: 'Applying speculative decoding principles to multi-agent consensus allows 70% of low-ambiguity research subtasks to resolve in <1.2s, escalating to full adversarial debate only when entropy exceeds student-defined tolerances.',
-    rationale: 'Directly solves Gap-01 by marrying Vaswani et al.\'s factual fidelity with Thorne et al.\'s speculative speedup.',
-    targetGapId: 'gap-01',
-    recommendedArchitecture: 'Hierarchical 3-tier agent pipeline: Fast Draft Agent -> Entropy Validator -> Deep Adversarial Panel',
-    estimatedEffortWeeks: 6
+    core_hypothesis:
+      'Applying speculative decoding principles to multi-agent consensus allows low-ambiguity research subtasks to resolve quickly while escalating uncertain cases to deeper verification.',
+    rationale:
+      'This research direction addresses the verification latency problem identified in the literature.',
+    architecture:
+      'Hierarchical 3-tier agent pipeline: Fast Draft Agent -> Entropy Validator -> Deep Verification Panel',
+    effort_weeks: '6',
+    target:
+      'Reduce verification latency while maintaining research claim reliability.',
+    source_gap:
+      'Verification Latency Bottleneck in Scientific Agent Pipelines'
   },
   {
-    id: 'idea-02',
     title: 'Cognitive-Load Aware Academic Milestone Orchestrator',
-    coreHypothesis: 'Dynamic task scheduling coupled with real-time research paper reading velocity predicts student burnout and automatically redistributes milestone deadlines.',
-    rationale: 'Addresses Gap-02 by turning static academic reminders into an adaptive progress governor.',
-    targetGapId: 'gap-02',
-    recommendedArchitecture: 'Stateful RL-based Scheduler Agent with User In-The-Loop Approval Gates',
-    estimatedEffortWeeks: 4
+    core_hypothesis:
+      'Dynamic task scheduling coupled with research progress information can improve academic milestone planning.',
+    rationale:
+      'This research direction addresses adaptive academic workflow management.',
+    architecture:
+      'Stateful scheduling agent with human-in-the-loop approval gates',
+    effort_weeks: '4',
+    target:
+      'Improve academic research planning and milestone management.',
+    source_gap:
+      'Uncalibrated Student Feedback Integration in Academic AI Schedulers'
   }
 ];
 
@@ -530,11 +540,16 @@ export const mockAcademicDeadlines: AcademicDeadline[] = [
     type: 'exam'
   }
 ];
+const currentGeneratedDate = new Date().toLocaleDateString('en-US', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric'
+});
 
 export const mockFinalPlan: FinalResearchPlan = {
   projectId: 'rf-2026-09-001',
   topic: 'Speculative Multi-Agent Consensus for High-Speed Scientific Synthesis',
-  generatedDate: 'September 7, 2026',
+  generatedDate: currentGeneratedDate,
   problemStatement: 'Current automated scientific literature agents suffer from unacceptable latency bottlenecks and uncalibrated human trust, limiting real-time adoption in academic thesis workflows.',
   novelHypothesis: 'A hierarchical speculative drafting protocol coupled with entropy-gated human validation checkpoints can reduce multi-agent latency by 41% while maintaining >92% empirical claim verification.',
   methodologySummary: '5-stage pipeline consisting of Mistral-7B speculative drafting, SciBERT token entropy routing, dynamic citation graph traversal, AWQ-quantized reviewer panel critique, and student checkpoint authorization.',

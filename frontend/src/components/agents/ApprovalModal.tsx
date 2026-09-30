@@ -57,14 +57,14 @@ export const ApprovalModal: React.FC<Props> = ({ isOpen, onClose, plan, onApprov
           <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
             <h6 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Target Benchmark Datasets</h6>
             <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
-              {plan.datasets.map((d, i) => <li key={i}>{d}</li>)}
+              {(plan.datasets ?? []).map((d, i) => <li key={i}>{d}</li>)}
             </ul>
           </div>
 
           <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
             <h6 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Anticipated Risks & Guardrails</h6>
             <div className="space-y-1.5 text-xs">
-              {plan.risksAndMitigations.map((rm, i) => (
+              {(plan.risksAndMitigations ?? []).map((rm, i) => (
                 <div key={i} className="text-slate-300">
                   <span className="text-rose-400 font-medium">⚠️ {rm.risk}:</span> {rm.mitigation}
                 </div>

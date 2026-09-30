@@ -40,7 +40,7 @@ def update_approval_status(
     in MongoDB.
     """
 
-    result = collection.find_one_and_update(
+    result = research_collection.find_one_and_update(
         {"researchflow_id": researchflow_id},
         {
             "$set": {
@@ -58,3 +58,12 @@ def update_approval_status(
     result.pop("_id", None)
 
     return result
+
+def get_latest_workflow_by_user(researchflow_id: str):
+    """
+    Get the latest research workflow belonging to a student.
+    """
+    return research_collection.find_one(
+        {"researchflow_id": researchflow_id},
+        sort=[("created_at", -1)]
+    )
