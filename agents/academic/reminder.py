@@ -16,6 +16,7 @@ class ReminderAgent:
         tasks: list[dict],
         today: str | None = None,
         upcoming_days: int = 3,
+        upcoming_window_days: int = 14,
     ) -> list[dict]:
         """
         Generate reminders for academic tasks.
@@ -46,12 +47,14 @@ class ReminderAgent:
             raise ValueError(
                 "upcoming_days cannot be negative."
             )
+        if upcoming_window_days < upcoming_days:
+            raise ValueError("Upcoming window cannot be shorter than the due-soon window.")
 
         reminders = []
 
         for task in tasks:
-            task_name = task.get("task", "Unnamed Task")
-            status = task.get("status", "pending").lower()
+            task_name = task.get("title", task.get("task", "Unnamed Task"))
+            status = task.get("status", "pending").casefold()
             end_date_text = task.get("end_date")
 
             if not end_date_text:
@@ -97,7 +100,7 @@ class ReminderAgent:
                 reminders.append(
                     {
                         "task": task_name,
-                        "type": "upcoming",
+                        "type": "due_soon",
                         "message": (
                             f"{task_name} is due in "
                             f"{days_remaining} day(s)."
@@ -105,5 +108,16 @@ class ReminderAgent:
                         "days_remaining": days_remaining,
                     }
                 )
+            elif days_remaining <= upcoming_window_days:
+                reminders.append({
+                    "task_id": task.get("id"),
+                    "task": task_name,
+                    "type": "upcoming",
+                    "message": f"{task_name} is due in {days_remaining} day(s).",
+                    "days_remaining": days_remaining,
+                })
+
+            if reminders and reminders[-1].get("task") == task_name:
+                reminders[-1]["task_id"] = task.get("id")
 
         return reminders

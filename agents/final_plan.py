@@ -13,7 +13,10 @@ class FinalResearchPlanAgent:
         research_ideas: list[str],
         methodology: dict,
         citations: list[dict],
-        reviewer_feedback: str
+        reviewer_feedback: dict,
+        paper_analysis: list[dict] | None = None,
+        tasks: list[str] | None = None,
+        agent_statuses: dict[str, str] | None = None,
     ) -> dict:
         """
         Combine all research workflow outputs into
@@ -23,13 +26,16 @@ class FinalResearchPlanAgent:
         return {
             "research_problem": research_problem,
             "literature": papers,
+            "paper_analysis": paper_analysis or [],
             "comparison": comparison,
             "research_gaps": research_gaps,
             "research_ideas": research_ideas,
             "methodology": methodology,
             "citations": citations,
             "reviewer_feedback": reviewer_feedback,
-            "approval_status": "pending"
+            "tasks": tasks or [],
+            "agent_statuses": agent_statuses or {},
+            "approval_status": "pending",
         }
 
     def update_approval_status(

@@ -1,6 +1,3 @@
-from backend.core.gemini_client import client
-
-
 class ComparisonAgent:
     """
     Comparison Agent responsible for comparing
@@ -17,35 +14,43 @@ class ComparisonAgent:
         and Paper Intelligence results.
         """
 
+        analyses = {
+            _paper_id(analysis): analysis
+            for analysis in paper_analysis
+        }
         comparison = []
 
-        for index, paper in enumerate(papers):
-            analysis = (
-                paper_analysis[index]
-                if index < len(paper_analysis)
-                else {}
-            )
-
+        for paper in papers:
+            analysis = analyses.get(_paper_id(paper), {})
             comparison.append({
-                "title": paper.get("title", "Not available"),
+                "paper_id": _paper_id(paper),
+                "title": paper.get("title") or "Not reported",
                 "authors": paper.get("authors", []),
                 "year": paper.get("year"),
-                "methodology": analysis.get(
-                    "methodology",
-                    "Not available"
-                ),
-                "dataset": analysis.get(
-                    "dataset",
-                    "Not available"
-                ),
-                "models_or_techniques": analysis.get(
-                    "models_or_techniques",
-                    []
-                ),
-                "results": analysis.get(
-                    "results",
-                    "Not available"
-                )
+                "venue": paper.get("venue") or "Not reported",
+                "doi": paper.get("doi"),
+                "url": paper.get("url"),
+                "source": paper.get("source") or paper.get("source_type"),
+                "methodology": analysis.get("methodology", "Not reported"),
+                "dataset": analysis.get("dataset", "Not reported"),
+                "models_or_techniques": analysis.get("models_or_techniques", []),
+                "experiments": analysis.get("experiments", "Not reported"),
+                "evaluation_metrics": analysis.get("evaluation_metrics", []),
+                "results": analysis.get("results", "Not reported"),
+                "limitations": analysis.get("limitations", "Not reported"),
+                "contributions": analysis.get("contributions", "Not reported"),
+                "evidence": analysis.get("evidence", []),
             })
 
         return comparison
+
+
+def _paper_id(paper: dict) -> str:
+    return str(
+        paper.get("paper_id")
+        or paper.get("doi")
+        or paper.get("url")
+        or paper.get("title")
+        or paper.get("filename")
+        or "unknown-paper"
+    )

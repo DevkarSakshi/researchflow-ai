@@ -33,6 +33,7 @@ class AcademicWorkflow:
         plan = self.planner.create_plan(
             research_topic,
             deadline,
+            today=today,
         )
 
         return self._build_academic_data(
@@ -53,14 +54,22 @@ class AcademicWorkflow:
         final research plan produced by the research agents.
         """
 
-        research_topic = final_research_plan.get(
-            "research_problem",
-            "Research Project",
+        research_topic = (
+            final_research_plan.get("research_problem")
+            or next((
+                paper.get("title")
+                for paper in final_research_plan.get("paper_analysis", [])
+                if paper.get("title") and paper.get("title") != "Not reported"
+            ), None)
+            or "Research project based on uploaded papers"
         )
 
+        tasks = _tasks_from_research_plan(final_research_plan)
         plan = self.planner.create_plan(
             research_topic,
             deadline,
+            tasks=tasks or None,
+            today=today,
         )
 
         return self._build_academic_data(
@@ -85,6 +94,7 @@ class AcademicWorkflow:
         """
 
         tasks = plan.get("tasks", [])
+        milestones = plan.get("milestones", [])
 
         reminders = self.reminder.generate_reminders(
             tasks,
@@ -94,11 +104,13 @@ class AcademicWorkflow:
         progress = self.progress_tracker.calculate_progress(
             tasks,
             today=today,
+            milestones=milestones,
         )
 
         analytics = self.analytics.generate_analytics(
             tasks,
             today=today,
+            milestones=milestones,
         )
 
         result = {
@@ -114,3 +126,38 @@ class AcademicWorkflow:
             result["research_plan"] = final_research_plan
 
         return result
+
+
+def _tasks_from_research_plan(research_plan: dict) -> list[dict]:
+    tasks = []
+
+    for step in research_plan.get("methodology", {}).get("steps", []):
+        title = step.get("title")
+        if title:
+            tasks.append({
+                "title": title,
+                "description": step.get("description", ""),
+                "priority": "high",
+                "source_section": "methodology",
+                "reason": "Derived from the approved methodology step.",
+            })
+
+    for deliverable in research_plan.get("deliverables", []):
+        title = deliverable.get("title") if isinstance(deliverable, dict) else str(deliverable)
+        if title and title.strip():
+            tasks.append({
+                "title": title.strip(),
+                "description": deliverable.get("description", "") if isinstance(deliverable, dict) else "",
+                "priority": "medium",
+                "source_section": "deliverables",
+                "reason": "Derived from an approved research-plan deliverable.",
+            })
+
+    unique_tasks = []
+    seen = set()
+    for task in tasks:
+        key = task["title"].casefold()
+        if key not in seen:
+            seen.add(key)
+            unique_tasks.append(task)
+    return unique_tasks

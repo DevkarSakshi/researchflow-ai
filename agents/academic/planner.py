@@ -1,3 +1,4 @@
+import hashlib
 from datetime import date, timedelta
 
 
@@ -15,7 +16,8 @@ class PlannerAgent:
         self,
         research_topic: str,
         deadline: str,
-        tasks: list[str] | None = None,
+        tasks: list[str | dict] | None = None,
+        today: str | None = None,
     ) -> dict:
         """
         Create an academic project schedule.
@@ -40,9 +42,15 @@ class PlannerAgent:
                 "Deadline must use YYYY-MM-DD format."
             )
 
-        today = date.today()
+        if today:
+            try:
+                current_date = date.fromisoformat(today)
+            except ValueError as error:
+                raise ValueError("Today must use YYYY-MM-DD format.") from error
+        else:
+            current_date = date.today()
 
-        if deadline_date < today:
+        if deadline_date < current_date:
             raise ValueError(
                 "Project deadline cannot be in the past."
             )
@@ -58,61 +66,56 @@ class PlannerAgent:
                 "Final Review",
             ]
 
-        total_days = (deadline_date - today).days
-
-        # Keep at least one day for each task.
-        days_per_task = max(1, total_days // len(tasks))
+        total_days = (deadline_date - current_date).days
+        schedule_days = total_days + 1
+        task_count = len(tasks)
 
         scheduled_tasks = []
 
         for index, task in enumerate(tasks):
-            start_date = today + timedelta(
-                days=index * days_per_task
-            )
-
-            if index == len(tasks) - 1:
-                end_date = deadline_date
-            else:
-                end_date = min(
-                    deadline_date,
-                    today + timedelta(
-                        days=(index + 1) * days_per_task - 1
-                    ),
-                )
-
+            task_data = {"title": task} if isinstance(task, str) else dict(task)
+            title = str(task_data.get("title") or task_data.get("task") or "Untitled task").strip()
+            start_offset = index * schedule_days // task_count
+            end_offset = max(start_offset, (index + 1) * schedule_days // task_count - 1)
+            start_offset = min(start_offset, schedule_days - 1)
+            end_offset = min(end_offset, schedule_days - 1)
+            start_date = current_date + timedelta(days=start_offset)
+            end_date = current_date + timedelta(days=end_offset)
+            stable_id = hashlib.sha256(
+                f"{index}:{title.casefold()}".encode("utf-8")
+            ).hexdigest()[:16]
             scheduled_tasks.append(
                 {
-                    "task": task,
-                    "status": "pending",
+                    "id": stable_id,
+                    "title": title,
+                    "description": task_data.get("description", ""),
+                    "status": task_data.get("status", "pending"),
+                    "priority": task_data.get("priority", "medium"),
                     "start_date": start_date.isoformat(),
                     "end_date": end_date.isoformat(),
+                    "dependencies": task_data.get("dependencies", []),
+                    "source_section": task_data.get("source_section"),
+                    "reason": task_data.get("reason", ""),
+                    "task": title,
                 }
             )
 
         milestones = [
             {
-                "name": "Research Planning Completed",
-                "target_date": scheduled_tasks[0]["end_date"],
-            },
-            {
-                "name": "Implementation Completed",
-                "target_date": (
-                    scheduled_tasks[
-                        min(3, len(scheduled_tasks) - 1)
-                    ]["end_date"]
-                ),
-            },
-            {
-                "name": "Final Submission",
-                "target_date": deadline_date.isoformat(),
-            },
+                "id": f"milestone:{task['id']}",
+                "name": task["title"],
+                "target_date": task["end_date"],
+                "task_id": task["id"],
+            }
+            for task in scheduled_tasks
         ]
 
         return {
             "research_topic": research_topic,
-            "created_date": today.isoformat(),
+            "created_date": current_date.isoformat(),
             "deadline": deadline_date.isoformat(),
             "total_days": total_days,
+            "schedule_risk": task_count > schedule_days,
             "tasks": scheduled_tasks,
             "milestones": milestones,
         }

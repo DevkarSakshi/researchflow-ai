@@ -1,3 +1,6 @@
+import hashlib
+import re
+
 import requests
 
 
@@ -11,7 +14,14 @@ class LiteratureAgent:
         """
         Search Crossref and Semantic Scholar for relevant academic papers.
         """
+        return self.search_literature_with_status(research_problem)["papers"]
+
+    def search_literature_with_status(self, research_problem: str) -> dict:
+        if not research_problem.strip():
+            return {"papers": [], "sources": []}
+
         papers = []
+        sources = []
         try:
             response = requests.get(
                 "https://api.crossref.org/works",
@@ -39,10 +49,11 @@ class LiteratureAgent:
                     "venue": paper.get("container-title", [""])[0] if paper.get("container-title") else "",
                     "doi": paper.get("DOI"),
                     "url": paper.get("URL"),
-                    "source": "Crossref"
+                    "source": "Crossref",
                 })
-        except (requests.RequestException, ValueError, KeyError, TypeError):
-            pass
+            sources.append({"name": "Crossref", "status": "completed"})
+        except (requests.RequestException, ValueError, KeyError, TypeError) as error:
+            sources.append({"name": "Crossref", "status": "failed", "error": str(error)})
 
         try:
             response = requests.get(
@@ -66,10 +77,11 @@ class LiteratureAgent:
                     "venue": paper.get("venue") or "",
                     "doi": external_ids.get("DOI"),
                     "url": paper.get("url"),
-                    "source": "Semantic Scholar"
+                    "source": "Semantic Scholar",
                 })
-        except (requests.RequestException, ValueError, KeyError, TypeError):
-            pass
+            sources.append({"name": "Semantic Scholar", "status": "completed"})
+        except (requests.RequestException, ValueError, KeyError, TypeError) as error:
+            sources.append({"name": "Semantic Scholar", "status": "failed", "error": str(error)})
 
         unique_papers = []
         seen = set()
@@ -83,6 +95,17 @@ class LiteratureAgent:
 
             if key not in seen:
                 seen.add(key)
+                paper["paper_id"] = _paper_id(paper)
                 unique_papers.append(paper)
 
-        return unique_papers
+        return {"papers": unique_papers, "sources": sources}
+
+
+def _paper_id(paper: dict) -> str:
+    doi = (paper.get("doi") or "").strip()
+    if doi:
+        return "doi:" + doi.removeprefix("https://doi.org/").removeprefix("http://doi.org/").casefold()
+    if paper.get("url"):
+        return str(paper["url"])
+    title = " ".join((paper.get("title") or "").casefold().split())
+    return "title:" + hashlib.sha256(title.encode("utf-8")).hexdigest()[:20]
