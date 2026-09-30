@@ -1,57 +1,63 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Bot, 
-  FileCheck, 
-  BookOpen, 
-  GitCompare, 
-  Sparkles, 
-  Compass, 
-  Quote, 
-  ShieldCheck, 
-  GraduationCap, 
-  User, 
+import {
+  LayoutDashboard,
+  Bot,
+  FileCheck,
+  BookOpen,
+  GitCompare,
+  Sparkles,
+  Compass,
+  Quote,
+  ShieldCheck,
+  GraduationCap,
+  User,
   Search,
   Bell,
   Cpu,
   Settings,
   LogOut
 } from 'lucide-react';
-import { mockUser } from '../data/mockData';
-import { request } from '../services/api';
+import { API_BASE_URL, request } from '../services/api';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
 
 export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState(mockUser.fullName);
-const [researchFlowId, setResearchFlowId] = useState(mockUser.researchFlowId);
+  const [userName, setUserName] = useState('Researcher');
+  const [researchFlowId, setResearchFlowId] = useState('');
+  const [completedResearchAgents, setCompletedResearchAgents] = useState(0);
+  const [researchAgentCount, setResearchAgentCount] = useState(0);
+  const [hasAcademicProject, setHasAcademicProject] = useState(false);
+  const [reminderCount, setReminderCount] = useState(0);
+  const [backendStatus, setBackendStatus] = useState('Checking backend...');
 
-useEffect(() => {
-  const loadUser = async () => {
-    try {
-      const result = await request<{
-        message: string;
-        user: {
-          name: string;
-          email: string;
-          researchflow_id: string;
-        };
-      }>('/auth/me');
-
+  useEffect(() => {
+    request<{
+      message: string;
+      user: { name: string; email: string; researchflow_id: string };
+    }>('/auth/me').then(result => {
       setUserName(result.user.name);
       setResearchFlowId(result.user.researchflow_id);
-    } catch (error) {
-      console.error('Failed to load user:', error);
-    }
-  };
+    }).catch(() => setBackendStatus('Authentication unavailable'));
 
-  loadUser();
-}, []);
+    request<{ workflow: { agent_statuses?: Record<string, string> } | null }>('/research/latest')
+      .then(({ workflow }) => {
+        const statuses = Object.values(workflow?.agent_statuses ?? {});
+        setResearchAgentCount(statuses.length);
+        setCompletedResearchAgents(statuses.filter(status => status === 'completed').length);
+        setBackendStatus(statuses.length ? 'Research workflow loaded' : 'Research workflow not started');
+      })
+      .catch(() => setBackendStatus('Backend unavailable'));
+
+    request<{ project: unknown; reminders: unknown[] }>('/academic/state')
+      .then(state => {
+        setHasAcademicProject(state.project !== null);
+        setReminderCount(state.reminders.length);
+      })
+      .catch(() => setBackendStatus('Backend unavailable'));
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('Gemini 1.5 Pro / Flash (Hybrid)');
-  const [mockApiEnabled, setMockApiEnabled] = useState(true);
 
   const navItems = [
     { to: '/dashboard', label: 'Main Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -68,14 +74,14 @@ useEffect(() => {
   ];
 
   function handleLogout() {
-  if (confirm('Are you sure you want to log out of your ResearchFlow workspace?')) {
-    localStorage.removeItem('researchflow_token');
-    localStorage.removeItem('researchflow_id');
-    localStorage.removeItem('researchflow_name');
+    if (confirm('Are you sure you want to log out of your ResearchFlow workspace?')) {
+      localStorage.removeItem('researchflow_token');
+      localStorage.removeItem('researchflow_id');
+      localStorage.removeItem('researchflow_name');
 
-    navigate('/login');
+      navigate('/login');
+    }
   }
-}
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col md:flex-row">
@@ -104,10 +110,9 @@ useEffect(() => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 ${isActive
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                 }`
               }
             >
@@ -121,7 +126,7 @@ useEffect(() => {
             <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-500">
               System
             </div>
-            
+
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
@@ -143,15 +148,13 @@ useEffect(() => {
         </nav>
 
         {/* Profile preview at bottom of sidebar */}
-        <div 
+        <div
           onClick={() => navigate('/profile')}
           className="p-4 border-t border-slate-800/80 flex items-center gap-3 hover:bg-slate-900 cursor-pointer transition"
         >
-          <img 
-            src={mockUser.avatarUrl} 
-            alt={mockUser.fullName}
-            className="w-9 h-9 rounded-full object-cover border border-slate-700" 
-          />
+          <div className="w-9 h-9 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-300">
+            <User className="w-4 h-4" />
+          </div>
           <div className="truncate flex-1">
             <div className="text-xs font-semibold text-white truncate">{userName}</div>
             <div className="text-[10px] text-blue-400 font-mono truncate">{researchFlowId}</div>
@@ -175,17 +178,19 @@ useEffect(() => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              9 Research & 4 Academic Agents Ready
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              <span className={`w-2 h-2 rounded-full ${researchAgentCount ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
+              {researchAgentCount ? `${completedResearchAgents}/${researchAgentCount} research stages complete` : backendStatus}
+              <span>· Academic {hasAcademicProject ? 'active' : 'pending approval'}</span>
             </div>
 
-            <button 
-              onClick={() => alert("All 9 autonomous agents are operating with normal latency.")}
+            <button
+              onClick={() => navigate('/academic')}
               className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition relative cursor-pointer"
+              title="View task reminders"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>
+              {reminderCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>}
             </button>
           </div>
         </header>
@@ -205,53 +210,14 @@ useEffect(() => {
       >
         <div className="space-y-4 text-xs text-slate-300">
           <div>
-            <label className="block text-slate-300 mb-1 font-medium">Foundation LLM Model Tier</label>
-            <select
-              value={selectedModel}
-              onChange={e => setSelectedModel(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="Gemini 1.5 Pro / Flash (Hybrid)">Gemini 1.5 Pro / Flash (Hybrid)</option>
-              <option value="Claude 3.5 Sonnet (Scientific Reasoning)">Claude 3.5 Sonnet (Scientific Reasoning)</option>
-              <option value="GPT-4o (General Literature Review)">GPT-4o (General Literature Review)</option>
-              <option value="Local Mistral-7B / vLLM (Offline)">Local Mistral-7B / vLLM (Offline)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-slate-300 mb-1 font-medium">FastAPI Backend Connection</label>
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-              <div>
-                <div className="font-semibold text-white">Mock Data Mode</div>
-                <div className="text-[11px] text-slate-400">Use simulated agent stream without running FastAPI</div>
-              </div>
-              <input
-                type="checkbox"
-                checked={mockApiEnabled}
-                onChange={e => setMockApiEnabled(e.target.checked)}
-                className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-slate-300 mb-1 font-medium">API Endpoint URL</label>
-            <input
-              type="text"
-              defaultValue="http://127.0.0.1:8000/api/v1"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-            />
+            <label className="block text-slate-300 mb-1 font-medium">FastAPI Connection</label>
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-slate-300">{API_BASE_URL}</div>
+            <p className="mt-3 text-xs text-slate-400">Paper extraction, citations, comparisons, and academic calculations run locally. No LLM is required for the current workflow.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
             <Button variant="secondary" size="sm" onClick={() => setSettingsOpen(false)}>
               Close
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => {
-              alert('Settings saved successfully!');
-              setSettingsOpen(false);
-            }}>
-              Save Configuration
             </Button>
           </div>
         </div>

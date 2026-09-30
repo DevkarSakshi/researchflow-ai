@@ -1,21 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { 
-  Award, 
-  BookOpen, 
-  Mail, 
-  Building, 
-  GraduationCap, 
-  Camera, 
-  Edit3, 
-  Check, 
-  Copy, 
-  Sparkles, 
-  CheckCircle2, 
-  Plus, 
+import {
+  Award,
+  BookOpen,
+  Mail,
+  Building,
+  GraduationCap,
+  Camera,
+  Edit3,
+  Check,
+  Copy,
+  Sparkles,
+  CheckCircle2,
+  Plus,
   X,
-  Shield
+  Shield,
+  User
 } from 'lucide-react';
-import { mockUser } from '../../data/mockData';
 import { request } from '../../services/api';
 import type { UserProfile } from '../../types';
 import { Card } from '../../components/common/Card';
@@ -23,52 +23,54 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
 
+const emptyProfile: UserProfile = {
+  id: '',
+  researchFlowId: '',
+  fullName: '',
+  email: '',
+  avatarUrl: '',
+  institution: '',
+  degree: '',
+  department: '',
+  currentSemester: '',
+  advisor: '',
+  gpa: '',
+  researchInterests: [],
+  activeProjectName: '',
+};
+
 export const Profile: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile>(mockUser);
+  const [profile, setProfile] = useState<UserProfile>(emptyProfile);
+  const [formData, setFormData] = useState<UserProfile>(emptyProfile);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  useEffect(() => {
-  const loadUser = async () => {
-    try {
-      const result = await request<{
-        message: string;
-        user: {
-          name: string;
-          email: string;
-          researchflow_id: string;
-        };
-      }>('/auth/me');
-
-      setProfile(prev => ({
-        ...prev,
-        fullName: result.user.name,
-        email: result.user.email,
-        researchFlowId: result.user.researchflow_id,
-      }));
-
-      setFormData(prev => ({
-        ...prev,
-        fullName: result.user.name,
-        email: result.user.email,
-        researchFlowId: result.user.researchflow_id,
-      }));
-    } catch (error) {
-      console.error('Failed to load profile:', error);
-    }
-  };
-
-  loadUser();
-}, []);
-
   const [copiedId, setCopiedId] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  
-  // Edit form state
-  const [formData, setFormData] = useState<UserProfile>(mockUser);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [newTag, setNewTag] = useState('');
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    request<{
+      message: string;
+      user: { name: string; email: string; researchflow_id: string };
+    }>('/auth/me')
+      .then(result => {
+        const authenticatedProfile = {
+          ...emptyProfile,
+          fullName: result.user.name,
+          email: result.user.email,
+          researchFlowId: result.user.researchflow_id,
+        };
+        setProfile(authenticatedProfile);
+        setFormData(authenticatedProfile);
+      })
+      .catch(error => setLoadError(error instanceof Error ? error.message : 'Could not load profile.'))
+      .finally(() => setLoading(false));
+  }, []);
+
   function copyId() {
+    if (!profile.researchFlowId) return;
     navigator.clipboard.writeText(profile.researchFlowId);
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 2000);
@@ -116,11 +118,13 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
+      {loadError && <div role="alert" className="text-sm text-rose-300">{loadError}</div>}
+      {loading && <p className="text-sm text-slate-400">Loading account profile...</p>}
       {/* Toast Notification */}
       {saveSuccess && (
         <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>Profile changes saved successfully! Ready for backend sync.</span>
+          <span>Profile changes are saved for this browser session only.</span>
         </div>
       )}
 
@@ -129,11 +133,11 @@ export const Profile: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           {/* Avatar with Camera Trigger */}
           <div className="relative group shrink-0">
-            <img 
-              src={profile.avatarUrl} 
-              alt={profile.fullName} 
-              className="w-28 h-28 rounded-2xl object-cover border-2 border-blue-500/50 shadow-2xl transition duration-200 group-hover:brightness-75"
-            />
+            {profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt={profile.fullName || 'Account profile'} className="w-28 h-28 rounded-2xl object-cover border-2 border-blue-500/50 shadow-2xl transition duration-200 group-hover:brightness-75" />
+            ) : (
+              <div className="w-28 h-28 rounded-2xl border-2 border-blue-500/50 bg-slate-900 flex items-center justify-center text-slate-400"><User className="w-10 h-10" /></div>
+            )}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -143,29 +147,29 @@ export const Profile: React.FC = () => {
               <Camera className="w-5 h-5 text-blue-400" />
               <span className="text-[10px]">Change Photo</span>
             </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImageUpload} 
-              accept="image/*" 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
             />
           </div>
 
           {/* Identity Info */}
           <div className="space-y-3 text-center md:text-left flex-1">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <h1 className="text-2xl font-bold text-white">{profile.fullName}</h1>
-              <Badge variant="emerald">Verified Researcher</Badge>
+              <h1 className="text-2xl font-bold text-white">{profile.fullName || 'Researcher'}</h1>
+              <Badge variant="emerald">ResearchFlow account</Badge>
             </div>
 
             <p className="text-xs text-slate-300 flex items-center justify-center md:justify-start gap-2">
-              <GraduationCap className="w-4 h-4 text-blue-400" /> {profile.degree} • {profile.institution}
+              <GraduationCap className="w-4 h-4 text-blue-400" /> {profile.degree || 'Degree not provided'} • {profile.institution || 'Institution not provided'}
             </p>
 
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-slate-400">
-              <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {profile.email}</span>
-              <span className="flex items-center gap-1"><Building className="w-3.5 h-3.5" /> Advisor: {profile.advisor}</span>
+              <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {profile.email || 'Email not provided'}</span>
+              <span className="flex items-center gap-1"><Building className="w-3.5 h-3.5" /> Advisor: {profile.advisor || 'Not provided'}</span>
             </div>
 
             {profile.bio && (
@@ -177,8 +181,8 @@ export const Profile: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-2 shrink-0">
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               size="sm"
               onClick={() => {
                 setFormData(profile);
@@ -188,8 +192,8 @@ export const Profile: React.FC = () => {
             >
               Edit Profile
             </Button>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               icon={<Camera className="w-3.5 h-3.5" />}
@@ -211,7 +215,7 @@ export const Profile: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5 text-amber-400" /> ResearchFlow ID Credential
             </div>
             <div className="text-lg font-mono font-bold text-white tracking-wider mt-0.5">
-              {profile.researchFlowId}
+              {profile.researchFlowId || 'Not available'}
             </div>
             <div className="text-[11px] text-slate-400">
               Unique institutional token for autonomous agent dispatch and peer review provenance.
@@ -221,6 +225,7 @@ export const Profile: React.FC = () => {
 
         <button
           onClick={copyId}
+          disabled={!profile.researchFlowId}
           className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-mono transition cursor-pointer border border-slate-700 shrink-0"
         >
           {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -235,29 +240,29 @@ export const Profile: React.FC = () => {
             <h4 className="font-semibold text-white text-sm flex items-center gap-2">
               <Award className="w-4 h-4 text-amber-400" /> Academic Standing & Metrics
             </h4>
-            <span className="text-[11px] font-mono text-slate-400">Semester 7 / Graduate</span>
+            <span className="text-[11px] font-mono text-slate-400">Account-provided details</span>
           </div>
 
           <div className="space-y-2.5 text-xs">
             <div className="flex justify-between py-1.5 border-b border-slate-800/80">
               <span className="text-slate-400">Cumulative GPA:</span>
-              <span className="text-emerald-400 font-mono font-bold text-sm">{profile.gpa}</span>
+              <span className="text-emerald-400 font-mono font-bold text-sm">{profile.gpa || 'Not provided'}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-slate-800/80">
               <span className="text-slate-400">Department / Lab:</span>
-              <span className="text-white text-right">{profile.department}</span>
+              <span className="text-white text-right">{profile.department || 'Not provided'}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-slate-800/80">
               <span className="text-slate-400">Current Semester:</span>
-              <span className="text-white">{profile.currentSemester}</span>
+              <span className="text-white">{profile.currentSemester || 'Not provided'}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-slate-800/80">
               <span className="text-slate-400">Thesis Advisor:</span>
-              <span className="text-white">{profile.advisor}</span>
+              <span className="text-white">{profile.advisor || 'Not provided'}</span>
             </div>
             <div className="flex justify-between py-1.5">
               <span className="text-slate-400">Active Project:</span>
-              <span className="text-blue-400 text-right truncate max-w-[200px]">{profile.activeProjectName}</span>
+              <span className="text-blue-400 text-right truncate max-w-[200px]">{profile.activeProjectName || 'Not provided'}</span>
             </div>
           </div>
         </Card>
@@ -276,10 +281,11 @@ export const Profile: React.FC = () => {
                 {interest}
               </Badge>
             ))}
+            {profile.researchInterests.length === 0 && <p className="text-xs text-slate-400">No research interests are stored on this account.</p>}
           </div>
 
           <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 text-[11px] text-slate-400">
-            Agents use these semantic topics to personalize literature retrieval across arXiv, OpenAlex, and Semantic Scholar.
+            Research interests are not currently stored by the account service.
           </div>
         </Card>
       </div>

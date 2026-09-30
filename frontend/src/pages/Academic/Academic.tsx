@@ -7,8 +7,10 @@ import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 
 export const Academic: React.FC = () => {
-  const { tasks, deadlines, agents, toggleTask, addTask } = useAcademic();
+  const { tasks, agents, project, milestones, reminders, progress, analytics, loading, error, toggleTask, addTask } = useAcademic();
   const [activeTab, setActiveTab] = useState<'planner' | 'reminders' | 'analytics' | 'tracker'>('planner');
+
+  if (loading) return <p className="p-8 text-sm text-slate-400">Loading academic workflow...</p>;
 
   return (
     <div className="space-y-6">
@@ -21,13 +23,16 @@ export const Academic: React.FC = () => {
         </p>
       </div>
 
+      {error && <div role="alert" className="text-sm text-rose-300">{error}</div>}
+      {!project && <p className="text-sm text-slate-400">Approve a completed research plan to create an academic project and task schedule.</p>}
+
       {/* 4 Academic Agent Snapshot Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {agents.map(ag => (
           <div key={ag.id} className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-bold text-slate-200">{ag.name}</span>
-              <Badge variant="blue">Active</Badge>
+              <Badge variant={ag.status === 'completed' ? 'emerald' : ag.status === 'failed' ? 'rose' : 'slate'}>{ag.status}</Badge>
             </div>
             <div className="text-[11px] text-slate-400">{ag.insights[0]}</div>
           </div>
@@ -36,26 +41,26 @@ export const Academic: React.FC = () => {
 
       {/* Tabs */}
       <div className="flex border-b border-slate-800 space-x-6 text-xs font-medium">
-        <button 
-          onClick={() => setActiveTab('planner')} 
+        <button
+          onClick={() => setActiveTab('planner')}
           className={`pb-3 flex items-center gap-1.5 transition cursor-pointer ${activeTab === 'planner' ? 'text-blue-400 border-b-2 border-blue-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
         >
           <CheckSquare className="w-4 h-4" /> Planner Agent
         </button>
-        <button 
-          onClick={() => setActiveTab('reminders')} 
+        <button
+          onClick={() => setActiveTab('reminders')}
           className={`pb-3 flex items-center gap-1.5 transition cursor-pointer ${activeTab === 'reminders' ? 'text-blue-400 border-b-2 border-blue-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
         >
           <Clock className="w-4 h-4" /> Reminders Agent
         </button>
-        <button 
-          onClick={() => setActiveTab('analytics')} 
+        <button
+          onClick={() => setActiveTab('analytics')}
           className={`pb-3 flex items-center gap-1.5 transition cursor-pointer ${activeTab === 'analytics' ? 'text-blue-400 border-b-2 border-blue-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
         >
           <BarChart3 className="w-4 h-4" /> Analytics Agent
         </button>
-        <button 
-          onClick={() => setActiveTab('tracker')} 
+        <button
+          onClick={() => setActiveTab('tracker')}
           className={`pb-3 flex items-center gap-1.5 transition cursor-pointer ${activeTab === 'tracker' ? 'text-blue-400 border-b-2 border-blue-500 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
         >
           <Calendar className="w-4 h-4" /> Progress Tracker
@@ -64,42 +69,44 @@ export const Academic: React.FC = () => {
 
       {/* Tab Contents */}
       {activeTab === 'planner' && (
-        <TaskPlannerView tasks={tasks} onToggle={toggleTask} onAdd={addTask} />
+        <TaskPlannerView tasks={tasks} onToggle={toggleTask} onAdd={addTask} canCreate={!!project} />
       )}
 
       {activeTab === 'reminders' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {deadlines.map(d => (
-            <Card key={d.id} className="space-y-2">
+          {reminders.map((reminder, index) => (
+            <Card key={`${reminder.task_id ?? reminder.task}-${index}`} className="space-y-2">
               <div className="flex items-center justify-between">
-                <Badge variant={d.urgent ? 'rose' : 'blue'}>{d.daysRemaining} Days Left</Badge>
-                <span className="text-xs font-mono text-slate-400">{d.course}</span>
+                <Badge variant={reminder.type === 'overdue' ? 'rose' : reminder.type === 'due_today' ? 'amber' : 'blue'}>{reminder.type.replaceAll('_', ' ')}</Badge>
+                <span className="text-xs font-mono text-slate-400">{Math.abs(reminder.days_remaining)} days</span>
               </div>
-              <h4 className="font-bold text-white text-sm">{d.title}</h4>
-              <p className="text-xs text-slate-300">Scheduled Due Date: {d.dueDate}</p>
+              <h4 className="font-bold text-white text-sm">{reminder.task}</h4>
+              <p className="text-xs text-slate-300">{reminder.message}</p>
             </Card>
           ))}
+          {reminders.length === 0 && <p className="text-sm text-slate-400">No overdue or upcoming task reminders.</p>}
         </div>
       )}
 
-      {activeTab === 'analytics' && <AnalyticsCharts />}
+      {activeTab === 'analytics' && <AnalyticsCharts analytics={project ? analytics : null} />}
 
       {activeTab === 'tracker' && (
         <Card className="space-y-4">
-          <h4 className="font-semibold text-white text-sm">Thesis Capstone Milestone Roadmap</h4>
+          <h4 className="font-semibold text-white text-sm">Progress: {progress?.progress_percentage ?? 0}%</h4>
+          <p className="text-xs text-slate-400">
+            {progress?.completed_tasks ?? 0} completed · {progress?.remaining_tasks ?? 0} remaining · {progress?.overdue_tasks ?? 0} overdue
+          </p>
           <div className="space-y-3">
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-              <span className="text-slate-200 font-medium">Stage 1: Literature Synthesis & Problem Definition</span>
-              <Badge variant="emerald">100% Completed</Badge>
-            </div>
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-              <span className="text-slate-200 font-medium">Stage 2: Mathematical Formalism & Empirical Setup</span>
-              <Badge variant="blue" pulse>In Progress (80%)</Badge>
-            </div>
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-              <span className="text-slate-200 font-medium">Stage 3: Full Benchmark Validation & Advisor Defense</span>
-              <Badge variant="slate">Queued for Oct 2026</Badge>
-            </div>
+            {milestones.map(milestone => {
+              const status = tasks.find(task => task.id === milestone.task_id)?.status ?? milestone.status ?? 'pending';
+              return (
+                <div key={milestone.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                  <span className="text-slate-200 font-medium">{milestone.name} · {milestone.target_date}</span>
+                  <Badge variant={status === 'completed' ? 'emerald' : status === 'in_progress' ? 'blue' : 'slate'}>{status.replaceAll('_', ' ')}</Badge>
+                </div>
+              );
+            })}
+            {milestones.length === 0 && <p className="text-sm text-slate-400">No milestones are available yet.</p>}
           </div>
         </Card>
       )}

@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bot, 
-  Play, 
-  ShieldCheck, 
-  RefreshCw, 
-  FileText, 
-  Upload, 
-  FileUp, 
-  X, 
+import {
+  Bot,
+  Play,
+  ShieldCheck,
+  RefreshCw,
+  FileText,
+  Upload,
+  FileUp,
+  X,
   Sparkles,
   CheckCircle2
 } from 'lucide-react';
@@ -20,63 +20,50 @@ import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 
-interface UploadedPaper {
-  id: string;
-  name: string;
-  size: string;
-  uploadedAt: string;
-}
-
 export const Research: React.FC = () => {
   const navigate = useNavigate();
-  const { agents, finalPlan, isRunning, runWorkflowSimulation, approvePlan } = useAgents();
+  const { agents, finalPlan, workflowResult, error, isRunning, loading, runWorkflow, approvePlan } = useAgents();
   const [selectedAgentId, setSelectedAgentId] = useState<string>('orchestrator');
-  const [query, setQuery] = useState('How can speculative decoding accelerate multi-agent verification loops in academic synthesis?');
+  const [query, setQuery] = useState('');
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-
-  // Pre-loaded realistic sample papers + allows uploading user's own PDFs
-  const [uploadedPapers, setUploadedPapers] = useState<UploadedPaper[]>([
-    {
-      id: 'paper-1',
-      name: 'vaswani_2025_multiagent_synthesis.pdf',
-      size: '1.8 MB',
-      uploadedAt: 'Just now'
-    },
-    {
-      id: 'paper-2',
-      name: 'thorne_2025_speculative_verification.pdf',
-      size: '2.4 MB',
-      uploadedAt: 'Just now'
-    }
-  ]);
+  const [uploadedPapers, setUploadedPapers] = useState<File[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileSelect(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const newItems: UploadedPaper[] = [];
+    setUploadError(null);
+    const newItems: File[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-        newItems.push({
-          id: 'up_' + Date.now() + '_' + i,
-          name: file.name,
-          size: `${sizeMb} MB`,
-          uploadedAt: 'Uploaded'
-        });
+      const hasPDFExtension = file.name.toLowerCase().endsWith('.pdf');
+      if (!hasPDFExtension || (file.type && file.type !== 'application/pdf')) {
+        setUploadError(`${file.name} is not a PDF file.`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError(`${file.name} exceeds the 10 MiB per-file limit.`);
+        continue;
+      }
+      if (file.size > 0) {
+        newItems.push(file);
       }
     }
     if (newItems.length > 0) {
-      setUploadedPapers(prev => [...newItems, ...prev]);
-    } else {
-      alert('Please upload PDF research paper files (.pdf).');
+      const combined = [...uploadedPapers, ...newItems];
+      const totalSize = combined.reduce((total, file) => total + file.size, 0);
+      if (totalSize > 20 * 1024 * 1024) {
+        setUploadError('Combined PDF uploads exceed the 20 MiB limit.');
+      } else {
+        setUploadedPapers(combined);
+      }
     }
   }
 
-  function removePaper(id: string) {
-    setUploadedPapers(prev => prev.filter(p => p.id !== id));
+  function removePaper(fileToRemove: File) {
+    setUploadedPapers(prev => prev.filter(file => file !== fileToRemove));
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -97,13 +84,13 @@ export const Research: React.FC = () => {
             <Badge variant="blue">Autonomous Engine</Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Upload your research paper PDFs or state a research topic to trigger the 9-agent autonomous synthesis pipeline.
+            Upload research paper PDFs or state a research topic to run the synthesis workflow.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <Button 
-            variant="secondary" 
+          <Button
+            variant="secondary"
             size="sm"
             onClick={() => navigate('/final-plan')}
             icon={<FileText className="w-4 h-4 text-emerald-400" />}
@@ -129,19 +116,21 @@ export const Research: React.FC = () => {
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 ${
-              isDragging 
-                ? 'border-blue-500 bg-blue-500/10' 
-                : 'border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:bg-slate-900/60'
-            }`}
+            className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 ${isDragging
+              ? 'border-blue-500 bg-blue-500/10'
+              : 'border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:bg-slate-900/60'
+              }`}
           >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={(e) => handleFileSelect(e.target.files)} 
-              accept=".pdf" 
-              multiple 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => {
+                handleFileSelect(e.target.files);
+                e.target.value = '';
+              }}
+              accept=".pdf"
+              multiple
+              className="hidden"
             />
             <div className="max-w-md mx-auto space-y-2">
               <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto">
@@ -156,6 +145,8 @@ export const Research: React.FC = () => {
             </div>
           </div>
 
+          {uploadError && <p role="alert" className="mt-2 text-xs text-rose-300">{uploadError}</p>}
+
           {/* Active Uploaded Papers Chips */}
           {uploadedPapers.length > 0 && (
             <div className="mt-3 space-y-1.5">
@@ -166,17 +157,17 @@ export const Research: React.FC = () => {
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {uploadedPapers.map((paper) => (
-                  <div 
-                    key={paper.id} 
+                {uploadedPapers.map((paper, index) => (
+                  <div
+                    key={`${paper.name}-${paper.lastModified}-${index}`}
                     className="inline-flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-200"
                   >
                     <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     <span className="font-mono text-[11px] truncate max-w-[240px]">{paper.name}</span>
-                    <span className="text-[10px] text-slate-500 font-mono">({paper.size})</span>
+                    <span className="text-[10px] text-slate-500 font-mono">({(paper.size / (1024 * 1024)).toFixed(1)} MB)</span>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); removePaper(paper.id); }}
+                      onClick={(e) => { e.stopPropagation(); removePaper(paper); }}
                       className="text-slate-500 hover:text-rose-400 transition cursor-pointer ml-1"
                       title="Remove paper"
                     >
@@ -195,7 +186,7 @@ export const Research: React.FC = () => {
             <Sparkles className="w-4 h-4 text-amber-400" /> Step 2: Research Problem / Focus Topic
           </label>
           <div className="flex flex-col md:flex-row gap-3 items-center">
-            <input 
+            <input
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -203,17 +194,18 @@ export const Research: React.FC = () => {
               placeholder="State your hypothesis or academic research problem..."
             />
             <div className="flex gap-2 w-full md:w-auto self-end shrink-0">
-              <Button 
-                variant="primary" 
-                onClick={() => runWorkflowSimulation(query)} 
-                disabled={isRunning}
+              <Button
+                variant="primary"
+                onClick={() => runWorkflow(query, uploadedPapers)}
+                disabled={isRunning || (!query.trim() && uploadedPapers.length === 0)}
                 icon={isRunning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               >
                 {isRunning ? 'Running Research Workflow...' : 'Start Research Workflow'}
               </Button>
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onClick={() => setIsApprovalOpen(true)}
+                disabled={!finalPlan || isRunning}
                 icon={<ShieldCheck className="w-4 h-4 text-emerald-400" />}
               >
                 Approve Plan
@@ -232,40 +224,83 @@ export const Research: React.FC = () => {
               Stages: Pending → Running → Completed
             </div>
           </div>
-          <AgentWorkflowVisualizer 
-            agents={agents} 
-            selectedAgentId={selectedAgentId} 
-            onSelectAgent={a => setSelectedAgentId(a.id)} 
+          <AgentWorkflowVisualizer
+            agents={agents}
+            selectedAgentId={selectedAgentId}
+            onSelectAgent={a => setSelectedAgentId(a.id)}
           />
         </div>
       </Card>
+
+      {error && (
+        <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+          {error}
+        </div>
+      )}
+
+      {workflowResult && (
+        <Card className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Workflow Results</h2>
+            <p className="mt-1 text-xs text-slate-400">
+              {workflowResult.research_problem || 'PDF-based research'}
+              {workflowResult.pdfs.length > 0 && ` · ${workflowResult.pdfs.length} PDF${workflowResult.pdfs.length === 1 ? '' : 's'}`}
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {([
+              ['Literature', workflowResult.papers],
+              ['PDF Analysis', workflowResult.paper_analysis],
+              ['Comparison', workflowResult.comparison],
+              ['Research Gaps', workflowResult.research_gaps],
+              ['Research Ideas', workflowResult.research_ideas],
+              ['Methodology', workflowResult.methodology],
+              ['Citations', workflowResult.citations],
+              ['Reviewer Feedback', workflowResult.reviewer_feedback],
+              ['Final Research Plan', workflowResult.final_research_plan]
+            ] as const).map(([title, output]) => (
+              <section key={title} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                <h3 className="mb-2 text-xs font-semibold uppercase text-slate-300">{title}</h3>
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-[11px] text-slate-400">
+                  {typeof output === 'string' ? output : JSON.stringify(output, null, 2)}
+                </pre>
+              </section>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {!loading && !workflowResult && !isRunning && !error && (
+        <p className="text-sm text-slate-400">No research workflow has been run yet.</p>
+      )}
 
       {/* 9 Agents Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <Bot className="w-4 h-4 text-blue-400" /> Active Research Agents (9)
+            <Bot className="w-4 h-4 text-blue-400" /> Research Pipeline Stages ({agents.filter(agent => agent.status === 'completed').length}/{agents.length} completed)
           </h3>
           <span className="text-xs text-slate-400">Click any agent to inspect runtime logs and telemetry</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agents.map(agent => (
-            <AgentStatusCard 
-              key={agent.id} 
-              agent={agent} 
-              onInspect={() => setSelectedAgentId(agent.id)} 
+            <AgentStatusCard
+              key={agent.id}
+              agent={agent}
+              onInspect={() => setSelectedAgentId(agent.id)}
             />
           ))}
         </div>
       </div>
 
       {/* Human Student Approval Modal */}
-      <ApprovalModal 
-        isOpen={isApprovalOpen} 
-        onClose={() => setIsApprovalOpen(false)} 
-        plan={finalPlan} 
-        onApprove={approvePlan} 
+      <ApprovalModal
+        isOpen={isApprovalOpen}
+        onClose={() => setIsApprovalOpen(false)}
+        plan={finalPlan}
+        canApprove={Boolean(workflowResult?.paper_analysis.length)}
+        onApprove={approvePlan}
       />
     </div>
   );

@@ -15,22 +15,26 @@ export const PaperCard: React.FC<Props> = ({ paper }) => {
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <Badge variant="blue">{paper.venue}</Badge>
-            <Badge variant="purple">{paper.relevanceScore}% Match</Badge>
+            {paper.source && <Badge variant="slate">{paper.source}</Badge>}
           </div>
           <h3 className="font-semibold text-base text-slate-100 leading-snug">{paper.title}</h3>
         </div>
-        <button 
-          onClick={() => alert(`Opening PDF for paper: ${paper.title}`)}
-          className="p-2 text-slate-400 hover:text-blue-400 bg-slate-800/50 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition cursor-pointer"
-          title="View Original Paper"
-        >
-          <ExternalLink className="w-4 h-4" />
-        </button>
+        {paper.url && (
+          <a
+            href={paper.url}
+            target="_blank"
+            rel="noreferrer"
+            className="p-2 text-slate-400 hover:text-blue-400 bg-slate-800/50 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition"
+            title="Open source"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-400">
         <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {paper.authors.join(', ')}</span>
-        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {paper.year}</span>
+        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {paper.year ?? 'Year not reported'}</span>
       </div>
 
       <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-lg border border-slate-800">
@@ -53,7 +57,7 @@ export const PaperCard: React.FC<Props> = ({ paper }) => {
       </div>
 
       <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
-        {paper.tags.map((t, idx) => (
+        {(paper.tags ?? []).map((t, idx) => (
           <span key={idx} className="text-[11px] font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded">
             #{t}
           </span>

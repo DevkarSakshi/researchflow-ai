@@ -43,7 +43,13 @@ export const AgentStatusCard: React.FC<Props> = ({ agent, onInspect }) => {
         </div>
 
         <div className="p-3 bg-slate-950/60 rounded-lg border border-slate-800/80 my-3 text-xs font-mono text-slate-300 line-clamp-3">
-          {agent.summaryOutput || 'Waiting for upstream orchestrator dispatch...'}
+          {agent.summaryOutput || agent.error || (
+            agent.status === 'running'
+              ? `${agent.name} is processing...`
+              : agent.status === 'failed'
+                ? 'Stage failed. Workflow error details are shown above.'
+                : 'No research workflow has been run yet.'
+          )}
         </div>
       </div>
 
@@ -56,7 +62,7 @@ export const AgentStatusCard: React.FC<Props> = ({ agent, onInspect }) => {
             </>
           )}
         </div>
-        <button 
+        <button
           onClick={onInspect}
           className="text-blue-400 hover:text-blue-300 font-medium inline-flex items-center gap-1 cursor-pointer"
         >

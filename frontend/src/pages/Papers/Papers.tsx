@@ -7,12 +7,17 @@ import { PaperCard } from '../../components/research/PaperCard';
 export const Papers: React.FC = () => {
   const [papers, setPapers] = useState<ResearchPaper[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    agentService.getPapers().then((data: ResearchPaper[]) => setPapers(data));
+    agentService.getPapers()
+      .then(setPapers)
+      .catch(loadError => setError(loadError instanceof Error ? loadError.message : 'Could not load papers.'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const filtered = papers.filter(p => 
+  const filtered = papers.filter(p =>
     p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.authors.some(a => a.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -32,9 +37,9 @@ export const Papers: React.FC = () => {
 
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input 
-            type="text" 
-            placeholder="Search papers by keyword, dataset, author..." 
+          <input
+            type="text"
+            placeholder="Search papers by keyword, dataset, author..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
@@ -42,11 +47,16 @@ export const Papers: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {error && <div role="alert" className="text-sm text-rose-300">{error}</div>}
+      {loading ? (
+        <p className="text-sm text-slate-400">Loading papers...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-slate-400">{papers.length ? 'No papers match this search.' : 'No research workflow has been run yet.'}</p>
+      ) : <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {filtered.map(paper => (
           <PaperCard key={paper.id} paper={paper} />
         ))}
-      </div>
+      </div>}
     </div>
   );
 };

@@ -1,54 +1,49 @@
-import { USE_MOCK_DATA, request } from './api';
-import { 
-  mockAcademicAgents, 
-  mockAcademicTasks, 
-  mockAcademicDeadlines, 
-  mockUser 
-} from '../data/mockData';
-import type { AcademicTask, AcademicDeadline, AcademicAgent, UserProfile } from '../types';
+import { request } from './api';
+import type {
+  AcademicAgent,
+  AcademicAnalytics,
+  AcademicDeadline,
+  AcademicProgress,
+  AcademicProject,
+  AcademicReminder,
+  AcademicTask,
+  AcademicTaskInput,
+} from '../types';
+
+export interface AcademicWorkflowState {
+  project: AcademicProject | null;
+  tasks: AcademicTask[];
+  milestones: { id: string; name: string; target_date: string; task_id: string; status?: string }[];
+  reminders: AcademicReminder[];
+  progress: AcademicProgress;
+  analytics: AcademicAnalytics;
+}
 
 export const academicService = {
-  async getAcademicAgents(): Promise<AcademicAgent[]> {
-    if (USE_MOCK_DATA) return Promise.resolve(mockAcademicAgents);
+  getState(): Promise<AcademicWorkflowState> {
+    return request<AcademicWorkflowState>('/academic/state');
+  },
+
+  getAcademicAgents(): Promise<AcademicAgent[]> {
     return request<AcademicAgent[]>('/academic/agents');
   },
 
+  getDeadlines(): Promise<AcademicDeadline[]> {
+    return request<AcademicDeadline[]>('/academic/deadlines');
+  },
+
   async getTasks(): Promise<AcademicTask[]> {
-    if (USE_MOCK_DATA) return Promise.resolve(mockAcademicTasks);
     return request<AcademicTask[]>('/academic/tasks');
   },
 
-  async createTask(newTask: Omit<AcademicTask, 'id'>): Promise<AcademicTask> {
-    if (USE_MOCK_DATA) {
-      const task: AcademicTask = {
-        ...newTask,
-        id: 't_' + Date.now()
-      };
-      mockAcademicTasks.unshift(task);
-      return Promise.resolve(task);
-    }
+  createTask(newTask: AcademicTaskInput): Promise<AcademicTask> {
     return request<AcademicTask>('/academic/tasks', {
       method: 'POST',
       body: JSON.stringify(newTask)
     });
   },
 
-  async toggleTask(id: string): Promise<AcademicTask | undefined> {
-    if (USE_MOCK_DATA) {
-      const found = mockAcademicTasks.find(t => t.id === id);
-      if (found) found.completed = !found.completed;
-      return Promise.resolve(found);
-    }
+  toggleTask(id: string): Promise<AcademicTask> {
     return request<AcademicTask>(`/academic/tasks/${id}/toggle`, { method: 'PATCH' });
   },
-
-  async getDeadlines(): Promise<AcademicDeadline[]> {
-    if (USE_MOCK_DATA) return Promise.resolve(mockAcademicDeadlines);
-    return request<AcademicDeadline[]>('/academic/deadlines');
-  },
-
-  async getUserProfile(): Promise<UserProfile> {
-    if (USE_MOCK_DATA) return Promise.resolve(mockUser);
-    return request<UserProfile>('/user/profile');
-  }
 };

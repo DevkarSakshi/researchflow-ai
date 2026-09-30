@@ -7,13 +7,29 @@ import { Button } from '../../components/common/Button';
 
 export const Comparison: React.FC = () => {
   const [rows, setRows] = useState<ComparisonMatrixRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    agentService.getComparisonMatrix().then((data: ComparisonMatrixRow[]) => setRows(data));
+    agentService.getComparisonMatrix()
+      .then(setRows)
+      .catch(loadError => setError(loadError instanceof Error ? loadError.message : 'Could not load comparisons.'))
+      .finally(() => setLoading(false));
   }, []);
 
   function exportCSV() {
-    alert("Exporting Comparison Matrix to CSV / LaTeX format...");
+    if (!rows.length) return;
+    const values = [
+      ['Paper', 'Year', 'Methodology', 'Dataset', 'Results', 'Limitations'],
+      ...rows.map(row => [row.paperTitle, String(row.year), row.methodology, row.dataset, row.results, row.limitations]),
+    ];
+    const csv = values.map(row => row.map(value => `"${value.replaceAll('"', '""')}"`).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'research-comparison.csv';
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -33,7 +49,8 @@ export const Comparison: React.FC = () => {
         </Button>
       </div>
 
-      <ComparisonTable rows={rows} />
+      {error && <div role="alert" className="text-sm text-rose-300">{error}</div>}
+      {loading ? <p className="text-sm text-slate-400">Loading comparison data...</p> : <ComparisonTable rows={rows} />}
     </div>
   );
 };

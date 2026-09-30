@@ -1,37 +1,94 @@
 import React, { useEffect, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
-import { Bot, BookOpen, Clock, Award, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
-import { mockUser, mockAcademicDeadlines, mockResearchAgents } from '../../data/mockData';
+import { Bot, BookOpen, Clock, Award, ArrowRight, Play } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { request } from '../../services/api';
+import type { AcademicDeadline } from '../../types';
+
+interface DashboardWorkflow {
+  status: string;
+  research_problem: string;
+  agents: string[];
+  agent_statuses: Record<string, string>;
+  result?: {
+    papers?: unknown[];
+    paper_analysis?: unknown[];
+    comparison?: unknown[];
+    research_gaps?: unknown[];
+    research_ideas?: unknown[];
+    methodology?: unknown;
+    citations?: unknown[];
+    reviewer_feedback?: string;
+    final_research_plan?: unknown;
+  };
+}
+
+function outputSummary(output: unknown) {
+  if (Array.isArray(output)) return `${output.length} result${output.length === 1 ? '' : 's'}`;
+  if (typeof output === 'string') return output;
+  return JSON.stringify(output);
+}
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState(mockUser.fullName);
+  const [userName, setUserName] = useState('Researcher');
+  const [workflow, setWorkflow] = useState<DashboardWorkflow | null>(null);
+  const [academicDeadlines, setAcademicDeadlines] = useState<AcademicDeadline[]>([]);
+  const [academicProgress, setAcademicProgress] = useState(0);
+  const [academicTaskCount, setAcademicTaskCount] = useState(0);
 
-useEffect(() => {
-  const loadUser = async () => {
-    try {
-      const result = await request<{
-        message: string;
-        user: {
-          name: string;
-          email: string;
-          researchflow_id: string;
-        };
-      }>('/auth/me');
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const result = await request<{
+          message: string;
+          user: {
+            name: string;
+            email: string;
+            researchflow_id: string;
+          };
+        }>('/auth/me');
 
-      setUserName(result.user.name);
-    } catch (error) {
-      console.error('Failed to load user:', error);
-    }
-  };
+        setUserName(result.user.name);
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      }
+    };
 
-  loadUser();
-}, []);
+    loadUser();
+
+    request<{ workflow: DashboardWorkflow | null }>('/research/latest')
+      .then(result => setWorkflow(result.workflow))
+      .catch(error => console.error('Failed to load latest research workflow:', error));
+
+    request<{ progress: { progress_percentage: number }; tasks: unknown[] }>('/academic/state')
+      .then(result => {
+        setAcademicProgress(result.progress.progress_percentage);
+        setAcademicTaskCount(result.tasks.length);
+      })
+      .catch(error => console.error('Failed to load academic state:', error));
+
+    request<AcademicDeadline[]>('/academic/deadlines')
+      .then(setAcademicDeadlines)
+      .catch(error => console.error('Failed to load academic deadlines:', error));
+  }, []);
+
+  const researchOutputs: { id: string; name: string; output: unknown }[] = workflow?.result ? [
+    { id: 'literature', name: 'Literature Agent', output: workflow.result.papers },
+    { id: 'paper_intelligence', name: 'Paper Intelligence Agent', output: workflow.result.paper_analysis },
+    { id: 'comparison', name: 'Comparison Agent', output: workflow.result.comparison },
+    { id: 'gap', name: 'Gap Agent', output: workflow.result.research_gaps },
+    { id: 'idea', name: 'Idea Agent', output: workflow.result.research_ideas },
+    { id: 'methodology', name: 'Methodology Agent', output: workflow.result.methodology },
+    { id: 'citation', name: 'Citation Agent', output: workflow.result.citations },
+    { id: 'reviewer', name: 'Reviewer Agent', output: workflow.result.reviewer_feedback },
+    { id: 'final_plan', name: 'Final Research Plan Agent', output: workflow.result.final_research_plan }
+  ].filter(item => item.output !== undefined) : [];
+  const analyzedPaperCount = workflow?.result?.paper_analysis?.length ?? 0;
+  const completedAgentCount = Object.values(workflow?.agent_statuses ?? {}).filter(status => status === 'completed').length;
 
   return (
     <div className="space-y-8">
@@ -39,15 +96,18 @@ useEffect(() => {
       <div className="bg-gradient-to-r from-blue-900/40 via-slate-900/60 to-purple-900/40 border border-blue-500/20 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2">
-            <Badge variant="blue">Fall 2026 Research Sprint</Badge>
-            <span className="text-xs text-slate-400 font-mono">Stanford AI Lab</span>
+            <Badge variant="blue">ResearchFlow AI</Badge>
+            <span className="text-xs text-slate-400 font-mono">
+              {workflow?.status ?? 'No research workflow yet'}
+            </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
             Welcome back, {userName.split(' ')[0]} 👋
           </h1>
           <p className="text-xs md:text-sm text-slate-300 max-w-2xl leading-relaxed">
-            Active Project: <strong className="text-white">{mockUser.activeProjectName}</strong>. 
-            All 9 research agents and 4 academic orchestrators are synchronized.
+            Active Research: <strong className="text-white">
+              {workflow?.research_problem || 'No topic provided'}
+            </strong>
           </p>
         </div>
 
@@ -69,8 +129,10 @@ useEffect(() => {
           </div>
           <div>
             <div className="text-xs text-slate-400">Research Agents</div>
-            <div className="text-xl font-bold text-white mt-0.5">9 / 9 Active</div>
-            <div className="text-[11px] text-emerald-400">Pipeline converged</div>
+            <div className="text-xl font-bold text-white mt-0.5">
+              {workflow ? `${completedAgentCount} / ${Object.keys(workflow.agent_statuses).length}` : 'Not started'}
+            </div>
+            <div className="text-[11px] text-slate-400">{workflow?.status ?? 'No workflow submitted'}</div>
           </div>
         </Card>
 
@@ -80,8 +142,8 @@ useEffect(() => {
           </div>
           <div>
             <div className="text-xs text-slate-400">Extracted Papers</div>
-            <div className="text-xl font-bold text-white mt-0.5">14 High-Impact</div>
-            <div className="text-[11px] text-purple-400">NeurIPS, ICLR, ACL</div>
+            <div className="text-xl font-bold text-white mt-0.5">{analyzedPaperCount}</div>
+            <div className="text-[11px] text-slate-400">Analyzed in latest workflow</div>
           </div>
         </Card>
 
@@ -90,9 +152,9 @@ useEffect(() => {
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-slate-400">Urgent Deadlines</div>
-            <div className="text-xl font-bold text-white mt-0.5">2 This Week</div>
-            <div className="text-[11px] text-amber-400">CS 330 & Capstone</div>
+            <div className="text-xs text-slate-400">Academic Tasks</div>
+            <div className="text-xl font-bold text-white mt-0.5">{academicTaskCount}</div>
+            <div className="text-[11px] text-slate-400">Persisted tasks</div>
           </div>
         </Card>
 
@@ -101,9 +163,9 @@ useEffect(() => {
             <Award className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-slate-400">Academic Standing</div>
-            <div className="text-xl font-bold text-white mt-0.5">{mockUser.gpa}</div>
-            <div className="text-[11px] text-emerald-400">Distinction Track</div>
+            <div className="text-xs text-slate-400">Academic Progress</div>
+            <div className="text-xl font-bold text-white mt-0.5">{academicProgress}%</div>
+            <div className="text-[11px] text-slate-400">Calculated from task status</div>
           </div>
         </Card>
       </div>
@@ -115,7 +177,7 @@ useEffect(() => {
             <h3 className="text-base font-semibold text-white flex items-center gap-2">
               <Bot className="w-4 h-4 text-blue-400" /> Research Agent Pipeline Live Status
             </h3>
-            <button 
+            <button
               onClick={() => navigate('/research')}
               className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 cursor-pointer"
             >
@@ -124,17 +186,19 @@ useEffect(() => {
           </div>
 
           <div className="space-y-3">
-            {mockResearchAgents.slice(0, 5).map(agent => (
-              <div key={agent.id} className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
+            {researchOutputs.length > 0 ? researchOutputs.map(({ id, name, output }) => (
+              <div key={name} className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-slate-200">{agent.name}</div>
-                  <div className="text-[11px] text-slate-400 truncate max-w-md">{agent.summaryOutput}</div>
+                  <div className="text-xs font-semibold text-slate-200">{name}</div>
+                  <div className="text-[11px] text-slate-400 truncate max-w-md">{outputSummary(output)}</div>
                 </div>
-                <Badge variant="emerald">
-                  <CheckCircle2 className="w-3 h-3" /> Ready
+                <Badge variant={workflow?.agent_statuses[id] === 'completed' ? 'emerald' : workflow?.agent_statuses[id] === 'failed' ? 'rose' : 'slate'}>
+                  {workflow?.agent_statuses[id] ?? 'pending'}
                 </Badge>
               </div>
-            ))}
+            )) : (
+              <p className="text-xs text-slate-400">No workflow results yet.</p>
+            )}
           </div>
         </Card>
 
@@ -143,7 +207,7 @@ useEffect(() => {
             <h3 className="text-base font-semibold text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-400" /> Upcoming Deadlines
             </h3>
-            <button 
+            <button
               onClick={() => navigate('/academic')}
               className="text-xs text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
             >
@@ -152,7 +216,7 @@ useEffect(() => {
           </div>
 
           <div className="space-y-3">
-            {mockAcademicDeadlines.map(d => (
+            {academicDeadlines.map(d => (
               <div key={d.id} className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-200">{d.title}</span>
@@ -161,6 +225,7 @@ useEffect(() => {
                 <div className="text-[11px] text-slate-400">{d.course} • {d.dueDate}</div>
               </div>
             ))}
+            {academicDeadlines.length === 0 && <p className="text-xs text-slate-400">No upcoming academic deadlines.</p>}
           </div>
         </Card>
       </div>

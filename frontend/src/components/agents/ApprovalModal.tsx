@@ -9,20 +9,27 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   plan: FinalResearchPlan | null;
-  onApprove: (decision: 'approved' | 'rejected' | 'changes_requested', notes?: string) => Promise<void>;
+  canApprove: boolean;
+  onApprove: (decision: 'approved' | 'rejected' | 'changes_requested', notes?: string, deadline?: string) => Promise<void>;
 }
 
-export const ApprovalModal: React.FC<Props> = ({ isOpen, onClose, plan, onApprove }) => {
+export const ApprovalModal: React.FC<Props> = ({ isOpen, onClose, plan, canApprove, onApprove }) => {
   const [notes, setNotes] = useState('');
+  const [deadline, setDeadline] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!plan) return null;
 
   async function handleAction(decision: 'approved' | 'rejected' | 'changes_requested') {
+    if (decision === 'approved' && (!deadline || !canApprove)) return;
     setSubmitting(true);
+    setError(null);
     try {
-      await onApprove(decision, notes);
+      await onApprove(decision, notes, deadline || undefined);
       onClose();
+    } catch (approvalError) {
+      setError(approvalError instanceof Error ? approvalError.message : 'Could not save approval decision.');
     } finally {
       setSubmitting(false);
     }
@@ -44,11 +51,11 @@ export const ApprovalModal: React.FC<Props> = ({ isOpen, onClose, plan, onApprov
 
         <div className="space-y-3">
           <h5 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-blue-400" /> Executive Research Problem & Novel Hypothesis
+            <FileText className="w-4 h-4 text-blue-400" /> Research Problem & Candidate Idea
           </h5>
           <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-sm space-y-2">
             <p className="text-slate-300"><strong className="text-white">Problem:</strong> {plan.problemStatement}</p>
-            <p className="text-slate-300"><strong className="text-blue-400">Novel Hypothesis:</strong> {plan.novelHypothesis}</p>
+            <p className="text-slate-300"><strong className="text-blue-400">Candidate hypothesis (not novelty-verified):</strong> {plan.novelHypothesis}</p>
             <p className="text-slate-300"><strong className="text-slate-400">Methodology:</strong> {plan.methodologySummary}</p>
           </div>
         </div>
@@ -74,6 +81,20 @@ export const ApprovalModal: React.FC<Props> = ({ isOpen, onClose, plan, onApprov
         </div>
 
         <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1.5" htmlFor="approval-deadline">
+            Academic project deadline
+          </label>
+          <input
+            id="approval-deadline"
+            type="date"
+            value={deadline}
+            min={new Date().toISOString().slice(0, 10)}
+            onChange={event => setDeadline(event.target.value)}
+            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white"
+          />
+        </div>
+
+        <div>
           <label className="block text-xs font-medium text-slate-300 mb-1.5">
             Student Feedback / Revisions Required for Downstream Agents
           </label>
@@ -86,13 +107,14 @@ export const ApprovalModal: React.FC<Props> = ({ isOpen, onClose, plan, onApprov
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          {(error || !canApprove) && <p role="alert" className="mr-auto text-xs text-rose-300">{error ?? 'Analyze at least one paper before approval.'}</p>}
           <Button variant="danger" size="sm" onClick={() => handleAction('rejected')} disabled={submitting} icon={<XCircle className="w-4 h-4" />}>
             Reject Plan
           </Button>
           <Button variant="secondary" size="sm" onClick={() => handleAction('changes_requested')} disabled={submitting} icon={<AlertCircle className="w-4 h-4" />}>
             Request Changes
           </Button>
-          <Button variant="primary" size="sm" onClick={() => handleAction('approved')} disabled={submitting} icon={<CheckCircle2 className="w-4 h-4" />}>
+          <Button variant="primary" size="sm" onClick={() => handleAction('approved')} disabled={submitting || !deadline || !canApprove} icon={<CheckCircle2 className="w-4 h-4" />}>
             Approve Research Plan
           </Button>
         </div>

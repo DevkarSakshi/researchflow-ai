@@ -8,9 +8,14 @@ import { Badge } from '../../components/common/Badge';
 export const Citations: React.FC = () => {
   const [citations, setCitations] = useState<CitationItem[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    agentService.getCitations().then((data: CitationItem[]) => setCitations(data));
+    agentService.getCitations()
+      .then(setCitations)
+      .catch(loadError => setError(loadError instanceof Error ? loadError.message : 'Could not load citations.'))
+      .finally(() => setLoading(false));
   }, []);
 
   function copyCitation(c: CitationItem) {
@@ -30,6 +35,10 @@ export const Citations: React.FC = () => {
         </p>
       </div>
 
+      {error && <div role="alert" className="text-sm text-rose-300">{error}</div>}
+      {loading && <p className="text-sm text-slate-400">Loading citations...</p>}
+      {!loading && !error && citations.length === 0 && <p className="text-sm text-slate-400">No citation metadata is available yet.</p>}
+
       <div className="space-y-4">
         {citations.map(c => (
           <Card key={c.id} className="space-y-3">
@@ -40,7 +49,7 @@ export const Citations: React.FC = () => {
                 </Badge>
                 <h4 className="font-semibold text-slate-200 text-xs">{c.paperTitle}</h4>
               </div>
-              <button 
+              <button
                 onClick={() => copyCitation(c)}
                 className="text-xs font-mono inline-flex items-center gap-1 text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 transition cursor-pointer"
               >

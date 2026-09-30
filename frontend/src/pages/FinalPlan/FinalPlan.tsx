@@ -1,28 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
-  BookOpen, 
-  Cpu, 
-  GitCompare, 
-  Sparkles, 
-  Compass, 
-  Quote, 
-  ShieldCheck, 
+import {
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  BookOpen,
+  Cpu,
+  GitCompare,
+  Sparkles,
+  Compass,
+  Quote,
+  ShieldCheck,
   Download,
   Calendar
 } from 'lucide-react';
 import { agentService } from '../../services/agentService';
-import type { 
-  FinalResearchPlan, 
-  ResearchPaper, 
-  ComparisonMatrixRow, 
-  ResearchGap as ResearchGapType, 
-  SuggestedIdea, 
-  MethodologyStep, 
-  CitationItem, 
-  ReviewerFeedbackItem 
+import type {
+  FinalResearchPlan,
+  ResearchPaper,
+  ComparisonMatrixRow,
+  ResearchGap as ResearchGapType,
+  SuggestedIdea,
+  MethodologyStep,
+  CitationItem,
+  ReviewerFeedbackItem
 } from '../../types';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -37,22 +37,24 @@ export const FinalPlan: React.FC = () => {
   const [methodology, setMethodology] = useState<MethodologyStep[]>([]);
   const [citations, setCitations] = useState<CitationItem[]>([]);
   const [reviewerFeedback, setReviewerFeedback] = useState<ReviewerFeedbackItem[]>([]);
-  
+
   const [studentNotes, setStudentNotes] = useState('');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deadline, setDeadline] = useState('');
 
   useEffect(() => {
     async function loadAllData() {
       setLoading(true);
       try {
         const [
-          planData, 
-          paperData, 
-          compData, 
-          gapData, 
-          methData, 
-          citData, 
+          planData,
+          paperData,
+          compData,
+          gapData,
+          methData,
+          citData,
           revData
         ] = await Promise.all([
           agentService.getFinalPlan(),
@@ -71,6 +73,8 @@ export const FinalPlan: React.FC = () => {
         setMethodology(methData);
         setCitations(citData);
         setReviewerFeedback(revData);
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Could not load the research plan.');
       } finally {
         setLoading(false);
       }
@@ -79,20 +83,26 @@ export const FinalPlan: React.FC = () => {
   }, []);
 
   async function handleDecision(decision: 'approved' | 'rejected' | 'changes_requested') {
-    const res = await agentService.submitPlanApproval(decision, studentNotes);
-    setPlan({ ...res.updatedPlan });
-    
-    if (decision === 'approved') {
-      setStatusMessage('Research Plan successfully Approved! Autonomous workflow execution initiated.');
-    } else if (decision === 'changes_requested') {
-      setStatusMessage('Revision requested. Upstream agents have been notified with your feedback notes.');
-    } else {
-      setStatusMessage('Research Plan rejected. You may formulate a new topic in the Research Workspace.');
+    setError(null);
+    if (decision === 'approved' && !deadline) {
+      setError('Set a project deadline before approving the plan.');
+      return;
     }
 
-    setTimeout(() => {
-      setStatusMessage(null);
-    }, 6000);
+    try {
+      await agentService.submitPlanApproval(decision, studentNotes, deadline || undefined);
+      const updatedPlan = await agentService.getFinalPlan();
+      setPlan(updatedPlan);
+      if (decision === 'approved') {
+        setStatusMessage('Research plan approved and academic tasks created from its methodology and deliverables.');
+      } else if (decision === 'changes_requested') {
+        setStatusMessage('Change request saved with your notes.');
+      } else {
+        setStatusMessage('Plan rejection saved.');
+      }
+    } catch (decisionError) {
+      setError(decisionError instanceof Error ? decisionError.message : 'Could not save the decision.');
+    }
   }
 
   function exportPlan() {
@@ -111,7 +121,7 @@ export const FinalPlan: React.FC = () => {
       `## 1. Literature Agent Synthesis`,
       ``,
       ...papers.slice(0, 4).map(p =>
-        `### ${p.title} (${p.year})\n- **Authors:** ${p.authors.join(', ')}\n- **Venue:** ${p.venue}\n- **Summary:** ${p.summary}\n`
+        `### ${p.title} (${p.year ?? 'Year not reported'})\n- **Authors:** ${p.authors.join(', ')}\n- **Venue:** ${p.venue}\n- **Summary:** ${p.summary}\n`
       ),
       `---`,
       ``,
@@ -127,7 +137,7 @@ export const FinalPlan: React.FC = () => {
       `| Paper | Year | Methodology | Results | Limitations |`,
       `|-------|------|-------------|---------|-------------|`,
       ...comparisons.map(r =>
-        `| ${r.paperTitle} | ${r.year} | ${r.methodology} | ${r.results} | ${r.limitations} |`
+        `| ${r.paperTitle} | ${r.year ?? 'Year not reported'} | ${r.methodology} | ${r.results} | ${r.limitations} |`
       ),
       ``,
       `---`,
@@ -135,14 +145,14 @@ export const FinalPlan: React.FC = () => {
       `## 4. Research Gaps`,
       ``,
       ...gaps.map((g, i) =>
-        `### Gap ${i + 1}: ${g.title}\n${g.description}\n- **Impact Score:** ${g.impactScore}/10\n- **Feasibility Score:** ${g.feasibilityScore}/10\n`
+        `### Gap ${i + 1}: ${g.title}\n${g.description}\n- **Sources:** ${g.sourcePaperTitles.join(', ')}\n`
       ),
       `---`,
       ``,
       `## 5. Suggested Research Ideas`,
       ``,
       ...ideas.map((idea, i) =>
-        `### Idea ${i + 1}: ${idea.title}\n**Hypothesis:** ${idea.coreHypothesis}\n**Rationale:** ${idea.rationale}\n- **Architecture:** ${idea.recommendedArchitecture}\n- **Effort:** ~${idea.estimatedEffortWeeks} weeks\n`
+        `### Candidate ${i + 1}: ${idea.title}\n**Hypothesis:** ${idea.coreHypothesis}\n**Rationale:** ${idea.rationale}\n- **Proposed approach:** ${idea.recommendedArchitecture}\n`
       ),
       `---`,
       ``,
@@ -155,7 +165,7 @@ export const FinalPlan: React.FC = () => {
       ``,
       `## 7. Citations`,
       ``,
-      ...citations.map((c, i) => `${i + 1}. ${c.authors} (${c.year}). *${c.paperTitle}*. ${c.format} — ${c.rawCitation}`),
+      ...citations.map((c, i) => `${i + 1}. ${c.authors} (${c.year ?? 'Year not reported'}). *${c.paperTitle}*. ${c.format} - ${c.rawCitation}`),
       ``,
       `---`,
       ``,
@@ -186,10 +196,23 @@ export const FinalPlan: React.FC = () => {
     URL.revokeObjectURL(url);
   }
 
-  if (loading || !plan) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center p-12 text-slate-400">
         Loading synthesized research plan...
+      </div>
+    );
+  }
+
+  if (error && !plan) {
+    return <div role="alert" className="p-8 text-sm text-rose-300">{error}</div>;
+  }
+
+  if (!plan) {
+    return (
+      <div className="space-y-4 p-8 text-center">
+        <p className="text-slate-300">No research workflow has been run yet.</p>
+        <Button variant="primary" onClick={() => window.location.assign('/research')}>Start Research</Button>
       </div>
     );
   }
@@ -231,6 +254,7 @@ export const FinalPlan: React.FC = () => {
           </div>
         </div>
 
+        {error && <div role="alert" className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">{error}</div>}
         {statusMessage && (
           <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center gap-2 animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
@@ -249,6 +273,20 @@ export const FinalPlan: React.FC = () => {
         </div>
 
         <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1.5" htmlFor="research-deadline">
+            Academic project deadline
+          </label>
+          <input
+            id="research-deadline"
+            type="date"
+            value={deadline}
+            min={new Date().toISOString().slice(0, 10)}
+            onChange={event => setDeadline(event.target.value)}
+            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white"
+          />
+        </div>
+
+        <div>
           <label className="block text-xs font-medium text-slate-300 mb-1.5">
             Student Revisions / Guidance Notes (Optional)
           </label>
@@ -261,26 +299,27 @@ export const FinalPlan: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-slate-800">
-          <Button 
-            variant="danger" 
-            size="sm" 
+          <Button
+            variant="danger"
+            size="sm"
             onClick={() => handleDecision('rejected')}
             icon={<XCircle className="w-4 h-4" />}
           >
             Reject
           </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleDecision('changes_requested')}
             icon={<AlertCircle className="w-4 h-4 text-amber-400" />}
           >
             Request Changes
           </Button>
-          <Button 
-            variant="primary" 
-            size="sm" 
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => handleDecision('approved')}
+            disabled={!deadline || papers.length === 0}
             icon={<CheckCircle2 className="w-4 h-4" />}
           >
             Approve Research Plan
@@ -299,7 +338,7 @@ export const FinalPlan: React.FC = () => {
             <Badge variant="blue">{papers.length} Candidate Papers Filtered</Badge>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            High-impact publications retrieved and filtered across NeurIPS, ICLR, and ACL directly relating to speculative consensus and multi-agent reasoning.
+            {papers.length} source{papers.length === 1 ? '' : 's'} returned by the current workflow.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {papers.slice(0, 4).map(p => (
@@ -312,6 +351,7 @@ export const FinalPlan: React.FC = () => {
                 <div className="text-xs text-slate-300 line-clamp-2">{p.summary}</div>
               </div>
             ))}
+            {papers.length === 0 && <p className="text-xs text-slate-400">No paper records are available.</p>}
           </div>
         </Card>
 
@@ -342,6 +382,7 @@ export const FinalPlan: React.FC = () => {
                 </div>
               </div>
             ))}
+            {papers.length === 0 && <p className="text-xs text-slate-400">No paper analysis is available.</p>}
           </div>
         </Card>
 
@@ -374,6 +415,7 @@ export const FinalPlan: React.FC = () => {
                     <td className="p-3 text-rose-300/90">{c.limitations}</td>
                   </tr>
                 ))}
+                {comparisons.length === 0 && <tr><td colSpan={5} className="p-4 text-slate-400">No comparison results are available.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -391,8 +433,7 @@ export const FinalPlan: React.FC = () => {
             {gaps.map(g => (
               <div key={g.id} className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <Badge variant="rose">Impact: {g.impactScore}/10</Badge>
-                  <span className="text-[11px] font-mono text-slate-400">Feasibility: {g.feasibilityScore}/10</span>
+                  <Badge variant="rose">{g.gapType ?? 'Evidence gap'}</Badge>
                 </div>
                 <h4 className="font-semibold text-white">{g.title}</h4>
                 <p className="text-slate-300 leading-relaxed">{g.description}</p>
@@ -401,22 +442,23 @@ export const FinalPlan: React.FC = () => {
                 </div>
               </div>
             ))}
+            {gaps.length === 0 && <p className="text-xs text-slate-400">No evidence-based gaps are available.</p>}
           </div>
         </Card>
 
-        {/* Section 5: Suggested Ideas & Novel Hypotheses */}
+        {/* Section 5: Candidate Ideas */}
         <Card className="space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" /> 5. Formulated Novel Hypotheses & Architecture
+              <Sparkles className="w-5 h-5 text-amber-400" /> 5. Candidate Hypotheses & Approaches
             </h3>
-            <Badge variant="amber">Idea Agent</Badge>
+            <Badge variant="amber">Candidate ideas for review</Badge>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {ideas.map(idea => (
               <div key={idea.id} className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <Badge variant="emerald">Effort: ~{idea.estimatedEffortWeeks} Weeks</Badge>
+                  <Badge variant="emerald">{idea.status ?? 'Candidate'}</Badge>
                   <span className="font-mono text-blue-400">{idea.targetGapId}</span>
                 </div>
                 <h4 className="font-bold text-white text-sm">{idea.title}</h4>
@@ -428,6 +470,7 @@ export const FinalPlan: React.FC = () => {
                 </div>
               </div>
             ))}
+            {ideas.length === 0 && <p className="text-xs text-slate-400">No candidate ideas are available.</p>}
           </div>
         </Card>
 
@@ -452,6 +495,7 @@ export const FinalPlan: React.FC = () => {
                 </div>
               </div>
             ))}
+            {methodology.length === 0 && <p className="text-xs text-slate-400">No methodology steps are available.</p>}
           </div>
         </Card>
 
@@ -475,16 +519,19 @@ export const FinalPlan: React.FC = () => {
                 </div>
               </div>
             ))}
+            {citations.length === 0 && <p className="text-xs text-slate-400">No formatted citations are available.</p>}
           </div>
         </Card>
 
-        {/* Section 8: Simulated Peer Reviewer Feedback */}
+        {/* Section 8: Deterministic Reviewer Checks */}
         <Card className="space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" /> 8. Simulated Peer Reviewer Feedback
+              <ShieldCheck className="w-5 h-5 text-emerald-400" /> 8. Deterministic Reviewer Checks
             </h3>
-            <Badge variant="emerald">Score: 8.8 / 10.0</Badge>
+            <Badge variant={reviewerFeedback.some(item => item.severity === 'high') ? 'amber' : 'emerald'}>
+              {reviewerFeedback.length} checks
+            </Badge>
           </div>
           <div className="space-y-3">
             {reviewerFeedback.map((rf, idx) => (
@@ -503,6 +550,7 @@ export const FinalPlan: React.FC = () => {
                 </div>
               </div>
             ))}
+            {reviewerFeedback.length === 0 && <p className="text-xs text-slate-400">No reviewer checks are available.</p>}
           </div>
         </Card>
       </div>

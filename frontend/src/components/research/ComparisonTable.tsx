@@ -19,11 +19,13 @@ export const ComparisonTable: React.FC<Props> = ({ rows }) => {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800/80">
-          {rows.map((row) => (
+          {rows.length === 0 ? (
+            <tr><td colSpan={5} className="p-6 text-center text-slate-400">No comparison results are available yet.</td></tr>
+          ) : rows.map((row) => (
             <tr key={row.paperId} className="hover:bg-slate-850/50 transition">
               <td className="p-4 font-medium text-slate-100">
                 <div className="font-semibold text-blue-400">{row.paperTitle}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">Published: {row.year}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Published: {row.year ?? 'Year not reported'}</div>
               </td>
               <td className="p-4 text-slate-300">{row.methodology}</td>
               <td className="p-4 text-emerald-300 font-mono text-[11px]">{row.dataset}</td>

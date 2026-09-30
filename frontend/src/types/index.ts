@@ -1,6 +1,129 @@
 export type AgentStatus = 'pending' | 'running' | 'completed' | 'failed';
 
-export type ResearchAgentId = 
+export interface ResearchEvidence {
+  field: string;
+  excerpt: string;
+  pages: number[];
+}
+
+export interface PaperAnalysis {
+  [key: string]: unknown;
+  paper_id: string;
+  source_type: 'uploaded_pdf' | 'web_research' | string;
+  title: string;
+  authors: string[];
+  year?: number | null;
+  venue?: string | null;
+  doi?: string | null;
+  url?: string | null;
+  abstract: string;
+  methodology: string;
+  dataset: string;
+  models_or_techniques: string[];
+  experiments: string;
+  evaluation_metrics: string[];
+  results: string;
+  key_findings: string[];
+  limitations: string;
+  research_problem: string;
+  contributions: string;
+  evidence: ResearchEvidence[];
+  analysis_method: string;
+}
+
+export interface LiteratureSourceStatus {
+  name: string;
+  status: 'completed' | 'failed';
+  error?: string;
+}
+
+export interface WorkflowResearchGap {
+  gap_id: string;
+  gap_type: string;
+  description: string;
+  source_paper_ids: string[];
+  source_paper_titles: string[];
+  evidence: ResearchEvidence[];
+}
+
+export interface WorkflowResearchIdea {
+  idea_id: string;
+  status: string;
+  hypothesis: string;
+  problem_addressed: string;
+  motivation: ResearchEvidence[];
+  proposed_approach: string;
+  expected_contribution: string;
+  gap_id: string;
+  source_paper_ids: string[];
+  research_problem: string;
+}
+
+export interface WorkflowCitation {
+  paper_id: string;
+  title: string | null;
+  authors: string[];
+  year: number | null;
+  venue: string | null;
+  doi: string | null;
+  url: string | null;
+  source: string | null;
+  status: 'complete' | 'incomplete_metadata';
+  apa7: string | null;
+  ieee: string | null;
+  bibtex: string | null;
+}
+
+export interface ReviewerCheck {
+  id: string;
+  label: string;
+  status: 'passed' | 'needs_attention';
+  remediation: string | null;
+}
+
+export interface ReviewerReport {
+  status: string;
+  checks: ReviewerCheck[];
+  strengths: string[];
+  concerns: ReviewerCheck[];
+  required_revisions: string[];
+  questions_for_researcher: string[];
+  score: null;
+  method: string;
+}
+
+export interface ResearchWorkflowResult {
+  research_problem: string;
+  pdfs: { filename: string; paper_id: string; size_bytes: number; page_count: number }[];
+  status: string;
+  approval_status: string;
+  agent_statuses: Record<string, AgentStatus>;
+  literature_sources: LiteratureSourceStatus[];
+  tasks: string[];
+  papers: Record<string, unknown>[];
+  paper_analysis: PaperAnalysis[];
+  comparison: Record<string, unknown>[];
+  research_gaps: WorkflowResearchGap[];
+  research_ideas: WorkflowResearchIdea[];
+  methodology: Record<string, unknown>;
+  citations: WorkflowCitation[];
+  reviewer_feedback: ReviewerReport;
+  final_research_plan: Record<string, unknown>;
+}
+
+export interface PersistedResearchWorkflow {
+  id: string;
+  research_problem: string;
+  pdfs: ResearchWorkflowResult['pdfs'];
+  status: string;
+  approval_status: string;
+  agent_statuses: Record<string, AgentStatus>;
+  result?: ResearchWorkflowResult;
+  error?: string;
+  created_at?: string;
+}
+
+export type ResearchAgentId =
   | 'orchestrator'
   | 'literature'
   | 'paper_intelligence'
@@ -9,7 +132,8 @@ export type ResearchAgentId =
   | 'idea'
   | 'methodology'
   | 'citation'
-  | 'reviewer';
+  | 'reviewer'
+  | 'final_plan';
 
 export interface ResearchAgent {
   id: ResearchAgentId;
@@ -20,7 +144,7 @@ export interface ResearchAgent {
   progress: number;
   lastUpdated?: string;
   summaryOutput?: string;
-  detailedOutput?: any;
+  detailedOutput?: unknown;
   error?: string;
   metrics?: {
     durationSec: number;
@@ -44,7 +168,7 @@ export interface ResearchPaper {
   id: string;
   title: string;
   authors: string[];
-  year: number;
+  year?: number | null;
   venue: string;
   summary: string;
   methodology: string;
@@ -53,14 +177,18 @@ export interface ResearchPaper {
   limitations: string;
   citation: string;
   pdfUrl?: string;
-  relevanceScore: number;
-  tags: string[];
+  relevanceScore?: number;
+  tags?: string[];
+  doi?: string;
+  url?: string;
+  source?: string;
+  evidence?: ResearchEvidence[];
 }
 
 export interface ComparisonMatrixRow {
   paperId: string;
   paperTitle: string;
-  year: number;
+  year?: number | null;
   methodology: string;
   dataset: string;
   results: string;
@@ -72,10 +200,12 @@ export interface ResearchGap {
   id: string;
   title: string;
   description: string;
-  impactScore: number;
-  feasibilityScore: number;
+  impactScore?: number;
+  feasibilityScore?: number;
   sourcePaperIds: string[];
   sourcePaperTitles: string[];
+  gapType?: string;
+  evidence?: ResearchEvidence[];
 }
 
 export interface SuggestedIdea {
@@ -85,7 +215,12 @@ export interface SuggestedIdea {
   rationale: string;
   targetGapId: string;
   recommendedArchitecture: string;
-  estimatedEffortWeeks: number;
+  estimatedEffortWeeks?: number;
+  status?: string;
+  problemAddressed?: string;
+  proposedApproach?: string;
+  expectedContribution?: string;
+  sourcePaperIds?: string[];
 }
 
 export interface MethodologyStep {
@@ -101,7 +236,7 @@ export interface CitationItem {
   id: string;
   paperTitle: string;
   authors: string;
-  year: number;
+  year: number | null;
   format: 'APA' | 'IEEE' | 'BibTeX';
   rawCitation: string;
 }
@@ -118,11 +253,64 @@ export interface AcademicTask {
   id: string;
   title: string;
   type: 'assignment' | 'exam' | 'research_milestone' | 'paper_reading';
-  courseOrProject: string;
-  dueDate: string;
-  completed: boolean;
+  description: string;
+  course_or_project: string;
+  start_date: string;
+  end_date: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'blocked';
   priority: 'low' | 'medium' | 'high';
+  dependencies: string[];
+  source_section?: string;
+  reason: string;
   assignedAgent?: AcademicAgentId;
+}
+
+export type AcademicTaskInput = Pick<AcademicTask, 'title' | 'description' | 'type' | 'course_or_project' | 'end_date' | 'priority'>;
+
+export interface AcademicProgress {
+  total_tasks: number;
+  completed_tasks: number;
+  pending_tasks: number;
+  in_progress_tasks: number;
+  overdue_tasks: number;
+  progress_percentage: number;
+  current_task: string | null;
+  next_task: string | null;
+  remaining_tasks: number;
+  completed_milestones: number;
+  total_milestones: number;
+}
+
+export interface AcademicAnalytics {
+  total_tasks: number;
+  completed_tasks: number;
+  pending_tasks: number;
+  in_progress_tasks: number;
+  overdue_tasks: number;
+  completion_rate: number;
+  overdue_rate: number;
+  project_status: string;
+  total_project_days: number;
+  tasks_by_status: Record<string, number>;
+  tasks_by_priority: Record<string, number>;
+  completed_milestones: number;
+  total_milestones: number;
+}
+
+export interface AcademicReminder {
+  task_id?: string;
+  task: string;
+  type: 'overdue' | 'due_today' | 'due_soon' | 'upcoming';
+  message: string;
+  days_remaining: number;
+}
+
+export interface AcademicProject {
+  id: string;
+  research_workflow_id: string;
+  research_topic: string;
+  deadline: string;
+  schedule_risk: boolean;
 }
 
 export interface AcademicDeadline {

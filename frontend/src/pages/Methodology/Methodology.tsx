@@ -6,9 +6,14 @@ import { Card } from '../../components/common/Card';
 
 export const Methodology: React.FC = () => {
   const [steps, setSteps] = useState<MethodologyStep[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    agentService.getMethodology().then((data: MethodologyStep[]) => setSteps(data));
+    agentService.getMethodology()
+      .then(setSteps)
+      .catch(loadError => setError(loadError instanceof Error ? loadError.message : 'Could not load methodology.'))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -21,6 +26,10 @@ export const Methodology: React.FC = () => {
           Formulated by the Methodology Agent: Phased experimental protocol, inputs/outputs, and tooling stack.
         </p>
       </div>
+
+      {error && <div role="alert" className="text-sm text-rose-300">{error}</div>}
+      {loading && <p className="text-sm text-slate-400">Loading methodology...</p>}
+      {!loading && !error && steps.length === 0 && <p className="text-sm text-slate-400">No methodology results are available yet.</p>}
 
       <div className="space-y-4">
         {steps.map(step => (
