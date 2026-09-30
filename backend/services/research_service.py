@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+
+from agents.workflow import build_research_workflow
 from database.research_repository import (
     create_research_workflow as save_research_workflow
 )
@@ -9,7 +11,7 @@ def create_research_workflow(
     research_problem: str
 ):
     """
-    Create and store a research workflow for a student.
+    Create and execute a complete research workflow.
     """
 
     workflow_data = {
@@ -30,13 +32,36 @@ def create_research_workflow(
         "created_at": datetime.now(timezone.utc),
     }
 
+    # Save workflow start information
     save_research_workflow(workflow_data)
+
+    # Build and execute the 9-agent LangGraph workflow
+    workflow = build_research_workflow()
+
+    initial_state = {
+        "research_problem": research_problem
+    }
+
+    result = workflow.invoke(initial_state)
 
     return {
         "research_problem": research_problem,
-        "status": "started",
+        "status": "completed",
         "agents": workflow_data["agents"],
+        "tasks": result.get("tasks", []),
+        "papers": result.get("papers", []),
+        "paper_analysis": result.get("paper_analysis", []),
+        "comparison": result.get("comparison", []),
+        "research_gaps": result.get("research_gaps", []),
+        "research_ideas": result.get("research_ideas", []),
+        "methodology": result.get("methodology", {}),
+        "citations": result.get("citations", []),
+        "reviewer_feedback": result.get("reviewer_feedback", ""),
+        "final_research_plan": result.get(
+            "final_research_plan", {}
+        ),
     }
+
 
 def update_research_approval(
     researchflow_id: str,

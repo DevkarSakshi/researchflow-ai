@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 load_dotenv(
     os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        os.path.dirname(os.path.dirname(__file__)),
         ".env",
     )
 )
