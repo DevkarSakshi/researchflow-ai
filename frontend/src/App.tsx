@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppLayout } from './layouts/AppLayout';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { AppLayout, loadAppData } from './layouts/AppLayout';
 
 import { Login } from './pages/Login/Login';
 import { CreateAccount } from './pages/Login/CreateAccount';
@@ -15,48 +15,33 @@ import { Reviewer } from './pages/Reviewer/Reviewer';
 import { Academic } from './pages/Academic/Academic';
 import { Profile } from './pages/Profile/Profile';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('researchflow_token');
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-}
+const router = createBrowserRouter([
+  { path: '/login', element: <Login /> },
+  { path: '/create-account', element: <CreateAccount /> },
+  {
+    id: 'app',
+    path: '/',
+    loader: loadAppData,
+    element: <AppLayout />,
+    children: [
+      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { path: 'dashboard', element: <Dashboard /> },
+      { path: 'workspace', element: <Research /> },
+      { path: 'research', element: <Research /> },
+      { path: 'final-plan', element: <FinalPlan /> },
+      { path: 'papers', element: <Papers /> },
+      { path: 'comparison', element: <Comparison /> },
+      { path: 'gaps', element: <ResearchGap /> },
+      { path: 'methodology', element: <Methodology /> },
+      { path: 'citations', element: <Citations /> },
+      { path: 'reviewer', element: <Reviewer /> },
+      { path: 'academic', element: <Academic /> },
+      { path: 'profile', element: <Profile /> },
+    ],
+  },
+  { path: '*', element: <Navigate to="/dashboard" replace /> },
+]);
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/create-account" element={<CreateAccount />} />
-        
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="workspace" element={<Research />} />
-          <Route path="research" element={<Research />} />
-          <Route path="final-plan" element={<FinalPlan />} />
-          <Route path="papers" element={<Papers />} />
-          <Route path="comparison" element={<Comparison />} />
-          <Route path="gaps" element={<ResearchGap />} />
-          <Route path="methodology" element={<Methodology />} />
-          <Route path="citations" element={<Citations />} />
-          <Route path="reviewer" element={<Reviewer />} />
-          <Route path="academic" element={<Academic />} />
-          <Route path="profile" element={<Profile />} />
-        </Route>
-
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }

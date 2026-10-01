@@ -1,30 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Bot, BookOpen, Clock, Award, ArrowRight, Play } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
-import { request } from '../../services/api';
-import type { AcademicDeadline } from '../../types';
-
-interface DashboardWorkflow {
-  status: string;
-  research_problem: string;
-  agents: string[];
-  agent_statuses: Record<string, string>;
-  result?: {
-    papers?: unknown[];
-    paper_analysis?: unknown[];
-    comparison?: unknown[];
-    research_gaps?: unknown[];
-    research_ideas?: unknown[];
-    methodology?: unknown;
-    citations?: unknown[];
-    reviewer_feedback?: string;
-    final_research_plan?: unknown;
-  };
-}
+import type { AppData } from '../../layouts/AppLayout';
 
 function outputSummary(output: unknown) {
   if (Array.isArray(output)) return `${output.length} result${output.length === 1 ? '' : 's'}`;
@@ -34,47 +15,10 @@ function outputSummary(output: unknown) {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState('Researcher');
-  const [workflow, setWorkflow] = useState<DashboardWorkflow | null>(null);
-  const [academicDeadlines, setAcademicDeadlines] = useState<AcademicDeadline[]>([]);
-  const [academicProgress, setAcademicProgress] = useState(0);
-  const [academicTaskCount, setAcademicTaskCount] = useState(0);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const result = await request<{
-          message: string;
-          user: {
-            name: string;
-            email: string;
-            researchflow_id: string;
-          };
-        }>('/auth/me');
-
-        setUserName(result.user.name);
-      } catch (error) {
-        console.error('Failed to load user:', error);
-      }
-    };
-
-    loadUser();
-
-    request<{ workflow: DashboardWorkflow | null }>('/research/latest')
-      .then(result => setWorkflow(result.workflow))
-      .catch(error => console.error('Failed to load latest research workflow:', error));
-
-    request<{ progress: { progress_percentage: number }; tasks: unknown[] }>('/academic/state')
-      .then(result => {
-        setAcademicProgress(result.progress.progress_percentage);
-        setAcademicTaskCount(result.tasks.length);
-      })
-      .catch(error => console.error('Failed to load academic state:', error));
-
-    request<AcademicDeadline[]>('/academic/deadlines')
-      .then(setAcademicDeadlines)
-      .catch(error => console.error('Failed to load academic deadlines:', error));
-  }, []);
+  const { user, workflow, academicState, deadlines } = useOutletContext<AppData>();
+  const academicProgress = academicState.progress.progress_percentage;
+  const academicTaskCount = academicState.tasks.length;
+  const agentStatuses = workflow?.agent_statuses ?? {};
 
   const researchOutputs: { id: string; name: string; output: unknown }[] = workflow?.result ? [
     { id: 'literature', name: 'Literature Agent', output: workflow.result.papers },
@@ -88,7 +32,7 @@ export const Dashboard: React.FC = () => {
     { id: 'final_plan', name: 'Final Research Plan Agent', output: workflow.result.final_research_plan }
   ].filter(item => item.output !== undefined) : [];
   const analyzedPaperCount = workflow?.result?.paper_analysis?.length ?? 0;
-  const completedAgentCount = Object.values(workflow?.agent_statuses ?? {}).filter(status => status === 'completed').length;
+  const completedAgentCount = Object.values(agentStatuses).filter(status => status === 'completed').length;
 
   return (
     <div className="space-y-8">
@@ -102,7 +46,7 @@ export const Dashboard: React.FC = () => {
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Welcome back, {userName.split(' ')[0]} 👋
+            Welcome back, {user.name.split(' ')[0]} 👋
           </h1>
           <p className="text-xs md:text-sm text-slate-300 max-w-2xl leading-relaxed">
             Active Research: <strong className="text-white">
@@ -130,7 +74,7 @@ export const Dashboard: React.FC = () => {
           <div>
             <div className="text-xs text-slate-400">Research Agents</div>
             <div className="text-xl font-bold text-white mt-0.5">
-              {workflow ? `${completedAgentCount} / ${Object.keys(workflow.agent_statuses).length}` : 'Not started'}
+              {workflow ? `${completedAgentCount} / ${Object.keys(agentStatuses).length}` : 'Not started'}
             </div>
             <div className="text-[11px] text-slate-400">{workflow?.status ?? 'No workflow submitted'}</div>
           </div>
@@ -192,8 +136,8 @@ export const Dashboard: React.FC = () => {
                   <div className="text-xs font-semibold text-slate-200">{name}</div>
                   <div className="text-[11px] text-slate-400 truncate max-w-md">{outputSummary(output)}</div>
                 </div>
-                <Badge variant={workflow?.agent_statuses[id] === 'completed' ? 'emerald' : workflow?.agent_statuses[id] === 'failed' ? 'rose' : 'slate'}>
-                  {workflow?.agent_statuses[id] ?? 'pending'}
+                <Badge variant={agentStatuses[id] === 'completed' ? 'emerald' : agentStatuses[id] === 'failed' ? 'rose' : 'slate'}>
+                  {agentStatuses[id] ?? 'pending'}
                 </Badge>
               </div>
             )) : (
@@ -216,7 +160,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {academicDeadlines.map(d => (
+            {deadlines.map(d => (
               <div key={d.id} className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-200">{d.title}</span>
@@ -225,7 +169,7 @@ export const Dashboard: React.FC = () => {
                 <div className="text-[11px] text-slate-400">{d.course} • {d.dueDate}</div>
               </div>
             ))}
-            {academicDeadlines.length === 0 && <p className="text-xs text-slate-400">No upcoming academic deadlines.</p>}
+            {deadlines.length === 0 && <p className="text-xs text-slate-400">No upcoming academic deadlines.</p>}
           </div>
         </Card>
       </div>

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, Outlet, redirect, useLoaderData, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Bot,
@@ -21,43 +21,75 @@ import {
 import { API_BASE_URL, request } from '../services/api';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
+import type { AcademicDeadline } from '../types';
+
+export interface AppData {
+  user: { name: string; email: string; researchflow_id: string };
+  workflow: {
+    status: string;
+    research_problem: string;
+    agents: string[];
+    agent_statuses?: Record<string, string> | null;
+    result?: {
+      papers?: unknown[];
+      paper_analysis?: unknown[];
+      comparison?: unknown[];
+      research_gaps?: unknown[];
+      research_ideas?: unknown[];
+      methodology?: unknown;
+      citations?: unknown[];
+      reviewer_feedback?: string;
+      final_research_plan?: unknown;
+    };
+  } | null;
+  academicState: {
+    project: unknown;
+    reminders: unknown[];
+    progress: { progress_percentage: number };
+    tasks: unknown[];
+  };
+  deadlines: AcademicDeadline[];
+}
+
+export async function loadAppData(): Promise<AppData | Response> {
+  const token = localStorage.getItem('researchflow_token');
+  if (!token) return redirect('/login');
+
+  const [user, workflow, academicState, deadlines] = await Promise.all([
+    request<{ user: AppData['user'] }>('/auth/me').then(result => result.user).catch(() => null),
+    request<{ workflow: AppData['workflow'] }>('/research/latest').then(result => result.workflow).catch(() => null),
+    request<AppData['academicState']>('/academic/state').catch(() => null),
+    request<AcademicDeadline[]>('/academic/deadlines').catch(() => []),
+  ]);
+
+  return {
+    user: user ?? {
+      name: localStorage.getItem('researchflow_name') || 'Researcher',
+      email: '',
+      researchflow_id: localStorage.getItem('researchflow_id') || '',
+    },
+    workflow,
+    academicState: academicState ?? {
+      project: null,
+      reminders: [],
+      progress: { progress_percentage: 0 },
+      tasks: [],
+    },
+    deadlines,
+  };
+}
 
 export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState('Researcher');
-  const [researchFlowId, setResearchFlowId] = useState('');
-  const [completedResearchAgents, setCompletedResearchAgents] = useState(0);
-  const [researchAgentCount, setResearchAgentCount] = useState(0);
-  const [hasAcademicProject, setHasAcademicProject] = useState(false);
-  const [reminderCount, setReminderCount] = useState(0);
-  const [backendStatus, setBackendStatus] = useState('Checking backend...');
-
-  useEffect(() => {
-    request<{
-      message: string;
-      user: { name: string; email: string; researchflow_id: string };
-    }>('/auth/me').then(result => {
-      setUserName(result.user.name);
-      setResearchFlowId(result.user.researchflow_id);
-    }).catch(() => setBackendStatus('Authentication unavailable'));
-
-    request<{ workflow: { agent_statuses?: Record<string, string> } | null }>('/research/latest')
-      .then(({ workflow }) => {
-        const statuses = Object.values(workflow?.agent_statuses ?? {});
-        setResearchAgentCount(statuses.length);
-        setCompletedResearchAgents(statuses.filter(status => status === 'completed').length);
-        setBackendStatus(statuses.length ? 'Research workflow loaded' : 'Research workflow not started');
-      })
-      .catch(() => setBackendStatus('Backend unavailable'));
-
-    request<{ project: unknown; reminders: unknown[] }>('/academic/state')
-      .then(state => {
-        setHasAcademicProject(state.project !== null);
-        setReminderCount(state.reminders.length);
-      })
-      .catch(() => setBackendStatus('Backend unavailable'));
-  }, []);
+  const data = useLoaderData() as AppData;
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const statuses = Object.values(data.workflow?.agent_statuses ?? {});
+  const researchAgentCount = statuses.length;
+  const completedResearchAgents = statuses.filter(status => status === 'completed').length;
+  const hasAcademicProject = data.academicState.project !== null;
+  const reminderCount = data.academicState.reminders.length;
+  const backendStatus = researchAgentCount ? 'Research workflow loaded' : 'Research workflow not started';
 
   const navItems = [
     { to: '/dashboard', label: 'Main Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -156,8 +188,8 @@ export const AppLayout: React.FC = () => {
             <User className="w-4 h-4" />
           </div>
           <div className="truncate flex-1">
-            <div className="text-xs font-semibold text-white truncate">{userName}</div>
-            <div className="text-[10px] text-blue-400 font-mono truncate">{researchFlowId}</div>
+            <div className="text-xs font-semibold text-white truncate">{data.user.name}</div>
+            <div className="text-[10px] text-blue-400 font-mono truncate">{data.user.researchflow_id}</div>
           </div>
         </div>
       </aside>
@@ -197,7 +229,7 @@ export const AppLayout: React.FC = () => {
 
         {/* Page Content Outlet */}
         <main className="flex-1 p-6 md:p-8 overflow-y-auto">
-          <Outlet />
+          <Outlet context={data} />
         </main>
       </div>
 
