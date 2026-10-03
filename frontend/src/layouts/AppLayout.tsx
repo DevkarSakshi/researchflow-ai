@@ -16,11 +16,15 @@ import {
   Bell,
   Cpu,
   Settings,
-  LogOut
+  LogOut,
+  Sun,
+  Moon,
+  Laptop
 } from 'lucide-react';
 import { API_BASE_URL, request } from '../services/api';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
+import { useTheme, type Theme } from '../context/ThemeContext';
 import type { AcademicDeadline } from '../types';
 
 export interface AppData {
@@ -83,6 +87,7 @@ export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
   const data = useLoaderData() as AppData;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { theme, resolvedTheme, setTheme } = useTheme();
 
   const statuses = Object.values(data.workflow?.agent_statuses ?? {});
   const researchAgentCount = statuses.length;
@@ -240,8 +245,43 @@ export const AppLayout: React.FC = () => {
         title="ResearchFlow AI Settings"
         maxWidth="lg"
       >
-        <div className="space-y-4 text-xs text-slate-300">
+        <div className="space-y-5 text-xs text-slate-300">
+          {/* Appearance / Theme Selector */}
           <div>
+            <label className="block text-slate-300 mb-2 font-medium">Appearance & Theme</label>
+            <div className="grid grid-cols-3 gap-2.5">
+              {(
+                [
+                  { id: 'dark', label: 'Dark', icon: <Moon className="w-4 h-4" />, desc: 'Default dark workspace' },
+                  { id: 'light', label: 'Light', icon: <Sun className="w-4 h-4" />, desc: 'Clean bright layout' },
+                  { id: 'system', label: 'System', icon: <Laptop className="w-4 h-4" />, desc: 'Match OS preference' },
+                ] as const
+              ).map((option) => {
+                const isActive = theme === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setTheme(option.id as Theme)}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                      isActive
+                        ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-semibold shadow-sm shadow-blue-500/10'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700 hover:bg-slate-900/60'
+                    }`}
+                  >
+                    <div className="mb-1.5">{option.icon}</div>
+                    <span className="text-xs">{option.label}</span>
+                    <span className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{option.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 text-[11px] text-slate-400 font-mono">
+              Active mode: <span className="text-blue-400 capitalize">{theme}</span> {theme === 'system' && `(currently ${resolvedTheme})`}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-800">
             <label className="block text-slate-300 mb-1 font-medium">FastAPI Connection</label>
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-slate-300">{API_BASE_URL}</div>
             <p className="mt-3 text-xs text-slate-400">Paper extraction, citations, comparisons, and academic calculations run locally. No LLM is required for the current workflow.</p>

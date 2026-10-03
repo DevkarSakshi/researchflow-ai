@@ -13,7 +13,7 @@ export const CreateAccount: React.FC = () => {
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
- async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
       alert('Please enter your full name');
@@ -28,7 +28,7 @@ export const CreateAccount: React.FC = () => {
       return;
     }
 
-   try {
+    try {
       const result = await request<{
         message: string;
         user: {
@@ -48,9 +48,17 @@ export const CreateAccount: React.FC = () => {
       setGeneratedId(result.user.researchflow_id);
     } catch (error) {
       console.error('Registration error:', error);
-      alert(
-        'Registration failed. Please check your details or try a different email.'
-      );
+      let message = 'Registration failed. Please check your details or try a different email.';
+      if (error instanceof Error) {
+        const responseBody = error.message.match(/^API Error \[\d+\]:\s*(.*)$/s)?.[1];
+        if (responseBody) {
+          try {
+            const detail = JSON.parse(responseBody).detail;
+            if (typeof detail === 'string') message = detail;
+          } catch { }
+        }
+      }
+      alert(message);
     }
   }
 
@@ -110,8 +118,8 @@ export const CreateAccount: React.FC = () => {
               </div>
             </div>
 
-            <Button 
-              className="w-full" 
+            <Button
+              className="w-full"
               onClick={() => navigate('/dashboard')}
               icon={<ArrowRight className="w-4 h-4" />}
             >
@@ -127,8 +135,8 @@ export const CreateAccount: React.FC = () => {
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g. Aishwari Sharma"
@@ -159,8 +167,8 @@ export const CreateAccount: React.FC = () => {
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Minimum 6 characters"
@@ -176,8 +184,8 @@ export const CreateAccount: React.FC = () => {
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter password"

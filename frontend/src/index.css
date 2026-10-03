@@ -1,15 +1,214 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --bg-main: #0b0f19;
+    --bg-sidebar: #090d16;
+    --bg-header: rgba(9, 13, 22, 0.75);
+    --bg-card: rgba(15, 23, 42, 0.7);
+    --bg-card-subtle: rgba(9, 13, 22, 0.6);
+    --border-color: rgba(30, 41, 59, 0.8);
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    color-scheme: dark;
+  }
+
+  :root.light,
+  html.light {
+    --bg-main: #f8fafc;
+    --bg-sidebar: #ffffff;
+    --bg-header: rgba(255, 255, 255, 0.9);
+    --bg-card: #ffffff;
+    --bg-card-subtle: #f8fafc;
+    --border-color: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    color-scheme: light;
+  }
+
   body {
-    background-color: #0b0f19;
-    color: #f1f5f9;
+    background-color: var(--bg-main);
+    color: var(--text-main);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
-/* Custom scrollbars */
+/* ==========================================================================
+   Light Mode Comprehensive SaaS Theme Overrides
+   ========================================================================== */
+
+/* Page Backgrounds & Layout Surfaces */
+html.light .bg-\[\#0b0f19\] {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-\[\#090d16\] {
+  background-color: #ffffff !important;
+}
+
+html.light aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light header {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Primary Card & Container Surfaces */
+html.light .bg-slate-900,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/95,
+html.light .bg-slate-850,
+html.light .bg-slate-850\/50,
+html.light .bg-slate-850\/60 {
+  background-color: #ffffff !important;
+}
+
+/* Sub-panels, Code Blocks, Wells, & Inset Surfaces */
+html.light .bg-slate-950,
+html.light .bg-slate-950\/40,
+html.light .bg-slate-950\/50,
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/80 {
+  background-color: #f8fafc !important;
+}
+
+/* Modal Backdrops & Dialog Windows */
+html.light .bg-black\/75,
+html.light .bg-black\/60 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Borders */
+html.light .border-slate-800,
+html.light .border-slate-800\/60,
+html.light .border-slate-800\/80,
+html.light .border-slate-700,
+html.light .border-slate-700\/40,
+html.light .border-slate-700\/60,
+html.light .border-slate-700\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .divide-slate-800,
+html.light .divide-slate-800\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Typography */
+html.light .text-white,
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+/* Form Inputs, Dropdowns, Selects, & Textareas */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #3b82f6 !important;
+  background-color: #ffffff !important;
+}
+
+/* Secondary & Ghost Buttons in Light Mode */
+html.light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .bg-slate-800:hover,
+html.light .hover\:bg-slate-800:hover,
+html.light .hover\:bg-slate-800\/60:hover,
+html.light .hover\:bg-slate-700:hover,
+html.light .hover\:bg-slate-850:hover,
+html.light .hover\:bg-slate-900:hover,
+html.light .hover\:bg-slate-900\/60:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light .hover\:border-slate-700:hover {
+  border-color: #cbd5e1 !important;
+}
+
+/* Navigation items hover & active states */
+html.light nav a:not(.bg-blue-600) {
+  color: #64748b !important;
+}
+
+html.light nav a:not(.bg-blue-600):hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Badges & Chips Adjustment for Light Mode */
+html.light .bg-slate-700\/30 {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Hero / Header Dark Gradients -> Soft Subtle Light Gradients */
+html.light [class*="bg-gradient-to-r"][class*="from-blue-900"],
+html.light [class*="bg-gradient-to-r"][class*="from-blue-950"],
+html.light [class*="bg-gradient-to-r"][class*="from-slate-900"] {
+  background-image: linear-gradient(to right, #eff6ff, #f8fafc, #f5f3ff) !important;
+  border-color: #bfdbfe !important;
+}
+
+/* Comparison Tables & Tabular Data */
+html.light table thead tr {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Code & Pre Blocks */
+html.light pre,
+html.light code {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -17,10 +216,19 @@
 ::-webkit-scrollbar-track {
   background: #0f172a;
 }
+html.light ::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
 ::-webkit-scrollbar-thumb {
   background: #334155;
   border-radius: 9999px;
 }
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
