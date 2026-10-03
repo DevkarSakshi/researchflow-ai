@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
   XCircle,
@@ -11,7 +12,9 @@ import {
   Quote,
   ShieldCheck,
   Download,
-  Calendar
+  Calendar,
+  FileDown,
+  ArrowLeft
 } from 'lucide-react';
 import { agentService } from '../../services/agentService';
 import type {
@@ -29,6 +32,10 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 
 export const FinalPlan: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const workflowIdParam = searchParams.get('id') || undefined;
+
   const [plan, setPlan] = useState<FinalResearchPlan | null>(null);
   const [papers, setPapers] = useState<ResearchPaper[]>([]);
   const [comparisons, setComparisons] = useState<ComparisonMatrixRow[]>([]);
@@ -47,6 +54,7 @@ export const FinalPlan: React.FC = () => {
   useEffect(() => {
     async function loadAllData() {
       setLoading(true);
+      setError(null);
       try {
         const [
           planData,
@@ -57,13 +65,13 @@ export const FinalPlan: React.FC = () => {
           citData,
           revData
         ] = await Promise.all([
-          agentService.getFinalPlan(),
-          agentService.getPapers(),
-          agentService.getComparisonMatrix(),
-          agentService.getGapsAndIdeas(),
-          agentService.getMethodology(),
-          agentService.getCitations(),
-          agentService.getReviewerFeedback()
+          agentService.getFinalPlan(workflowIdParam),
+          agentService.getPapers(workflowIdParam),
+          agentService.getComparisonMatrix(workflowIdParam),
+          agentService.getGapsAndIdeas(workflowIdParam),
+          agentService.getMethodology(workflowIdParam),
+          agentService.getCitations(workflowIdParam),
+          agentService.getReviewerFeedback(workflowIdParam)
         ]);
         setPlan(planData);
         setPapers(paperData);
@@ -80,7 +88,8 @@ export const FinalPlan: React.FC = () => {
       }
     }
     loadAllData();
-  }, []);
+  }, [workflowIdParam]);
+
 
   async function handleDecision(decision: 'approved' | 'rejected' | 'changes_requested') {
     setError(null);
@@ -105,7 +114,340 @@ export const FinalPlan: React.FC = () => {
     }
   }
 
-  function exportPlan() {
+  function downloadFullPlanPDF() {
+    if (!plan) return;
+
+    // Generate self-contained, publication-ready academic HTML document for clean PDF printing/saving
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ResearchFlow_Plan_${plan.projectId}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 15mm 20mm 15mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.5;
+      font-size: 11pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .header {
+      border-bottom: 2.5pt solid #2563eb;
+      padding-bottom: 12pt;
+      margin-bottom: 18pt;
+    }
+    .badge-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6pt;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3pt 8pt;
+      border-radius: 4pt;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1pt solid #bfdbfe;
+    }
+    .status-badge {
+      display: inline-block;
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 3pt 8pt;
+      border-radius: 4pt;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1pt solid #a7f3d0;
+    }
+    h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 6pt 0 6pt 0;
+      line-height: 1.2;
+    }
+    .topic {
+      font-size: 12pt;
+      color: #334155;
+      margin: 0;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8pt;
+      background: #f8fafc;
+      border: 1pt solid #e2e8f0;
+      border-radius: 6pt;
+      padding: 10pt 14pt;
+      margin-bottom: 18pt;
+      font-size: 9.5pt;
+    }
+    .meta-item strong {
+      color: #1e293b;
+    }
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      border-bottom: 1pt solid #cbd5e1;
+      padding-bottom: 4pt;
+      margin-top: 18pt;
+      margin-bottom: 10pt;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 8pt 0 4pt 0;
+    }
+    p {
+      margin: 0 0 6pt 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10pt 0 16pt 0;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1pt solid #cbd5e1;
+      padding: 6pt 8pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #f1f5f9;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .card {
+      background: #f8fafc;
+      border: 1pt solid #e2e8f0;
+      border-radius: 6pt;
+      padding: 10pt 12pt;
+      margin-bottom: 10pt;
+      page-break-inside: avoid;
+    }
+    .card-title {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4pt;
+    }
+    .tags {
+      margin-top: 4pt;
+      font-size: 8.5pt;
+      color: #475569;
+    }
+    .method-step {
+      border-left: 3pt solid #2563eb;
+      padding-left: 10pt;
+      margin-bottom: 12pt;
+      page-break-inside: avoid;
+    }
+    .citation-block {
+      background: #f8fafc;
+      border: 1pt solid #e2e8f0;
+      border-radius: 4pt;
+      padding: 8pt 10pt;
+      font-family: monospace;
+      font-size: 8pt;
+      margin-bottom: 8pt;
+      white-space: pre-wrap;
+      word-break: break-all;
+      page-break-inside: avoid;
+    }
+    .reviewer-item {
+      border-left: 3pt solid #f59e0b;
+      padding-left: 10pt;
+      margin-bottom: 10pt;
+      page-break-inside: avoid;
+    }
+    .suggestion {
+      background: #ecfdf5;
+      border: 1pt solid #a7f3d0;
+      border-radius: 4pt;
+      padding: 6pt 8pt;
+      font-size: 9pt;
+      color: #065f46;
+      margin-top: 4pt;
+    }
+    .footer {
+      margin-top: 24pt;
+      border-top: 1pt solid #e2e8f0;
+      padding-top: 8pt;
+      font-size: 8pt;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge-bar">
+      <span class="badge">ResearchFlow AI • 9-Agent Pipeline</span>
+      <span class="status-badge">${plan.humanApprovalStatus.replace('_', ' ').toUpperCase()}</span>
+    </div>
+    <h1>${plan.topic}</h1>
+    <div class="topic">Synthesized Autonomous Academic Research Plan</div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-item"><strong>Plan ID:</strong> ${plan.projectId}</div>
+    <div class="meta-item"><strong>Generated Date:</strong> ${plan.generatedDate}</div>
+    <div class="meta-item"><strong>Human Approval Status:</strong> ${plan.humanApprovalStatus.replace('_', ' ').toUpperCase()}</div>
+    <div class="meta-item"><strong>Total Analyzed Sources:</strong> ${papers.length} publications</div>
+  </div>
+
+  <h2>1. Problem Statement & Novel Hypothesis</h2>
+  <div class="card">
+    <div class="card-title">Research Problem:</div>
+    <p>${plan.problemStatement}</p>
+    <div class="card-title" style="margin-top: 8pt;">Core Novel Hypothesis:</div>
+    <p style="color: #1d4ed8; font-weight: 600;">${plan.novelHypothesis}</p>
+    <div class="card-title" style="margin-top: 8pt;">Methodology Summary:</div>
+    <p>${plan.methodologySummary}</p>
+  </div>
+
+  <h2>2. Academic Literature Synthesis (${papers.length} Papers)</h2>
+  ${papers.map((p, i) => `
+    <div class="card">
+      <div class="card-title">${i + 1}. ${p.title} (${p.year ?? 'Year not reported'})</div>
+      <p><strong>Authors:</strong> ${p.authors.join(', ')}</p>
+      <p><strong>Venue:</strong> ${p.venue} ${p.citation ? '• ' + p.citation : ''}</p>
+      <p><strong>Summary:</strong> ${p.summary}</p>
+      <div class="tags"><strong>Methodology:</strong> ${p.methodology} | <strong>Dataset:</strong> ${p.dataset}</div>
+    </div>
+  `).join('')}
+
+  <h2>3. Cross-Paper Comparative Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Paper Title</th>
+        <th style="width: 10%;">Year</th>
+        <th style="width: 25%;">Methodology</th>
+        <th style="width: 15%;">Dataset</th>
+        <th style="width: 25%;">Results & Limitations</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${comparisons.map(c => `
+        <tr>
+          <td><strong>${c.paperTitle}</strong></td>
+          <td>${c.year ?? 'N/A'}</td>
+          <td>${c.methodology}</td>
+          <td><code>${c.dataset}</code></td>
+          <td>${c.results}<br><small style="color: #b91c1c;">Limitation: ${c.limitations}</small></td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <h2>4. Research Gaps & Identified Opportunities</h2>
+  ${gaps.map((g, i) => `
+    <div class="card">
+      <div class="card-title">Gap ${i + 1}: ${g.title}</div>
+      <p>${g.description}</p>
+      <div class="tags"><strong>Source Papers:</strong> ${g.sourcePaperTitles.join('; ')}</div>
+    </div>
+  `).join('')}
+
+  <h2>5. Candidate Research Hypotheses & Ideas</h2>
+  ${ideas.map((idea, i) => `
+    <div class="card">
+      <div class="card-title">Candidate Idea ${i + 1}: ${idea.title}</div>
+      <p><strong>Core Hypothesis:</strong> ${idea.coreHypothesis}</p>
+      <p><strong>Rationale:</strong> ${idea.rationale}</p>
+      <p><strong>Proposed Architecture:</strong> ${idea.recommendedArchitecture}</p>
+      ${idea.estimatedEffortWeeks ? `<div class="tags"><strong>Estimated Effort:</strong> ${idea.estimatedEffortWeeks} weeks</div>` : ''}
+    </div>
+  `).join('')}
+
+  <h2>6. Recommended Step-by-Step Methodology</h2>
+  ${methodology.map(step => `
+    <div class="method-step">
+      <div class="card-title">Step ${step.stepNumber}: ${step.title}</div>
+      <p>${step.description}</p>
+      <p style="font-size: 9pt;"><strong>Inputs:</strong> ${step.inputs.join(', ')}</p>
+      <p style="font-size: 9pt;"><strong>Outputs / Deliverables:</strong> ${step.outputs.join(', ')}</p>
+      <div class="tags"><strong>Recommended Tools / Frameworks:</strong> ${step.recommendedTools.join(', ')}</div>
+    </div>
+  `).join('')}
+
+  <h2>7. Verified Academic Citations & Bibliography</h2>
+  ${citations.map((c, i) => `
+    <div style="margin-bottom: 10pt; font-size: 9pt;">
+      <div><strong>[${i + 1}]</strong> ${c.authors} (${c.year ?? 'n.d.'}). <em>${c.paperTitle}</em>.</div>
+      <div class="citation-block">${c.rawCitation}</div>
+    </div>
+  `).join('')}
+
+  <h2>8. Reviewer Agent Critical Feedback</h2>
+  ${reviewerFeedback.map(fb => `
+    <div class="reviewer-item">
+      <div class="card-title">${fb.category} • Severity: ${fb.severity.toUpperCase()}</div>
+      <p><strong>${fb.title}</strong></p>
+      <p>${fb.detail}</p>
+      <div class="suggestion"><strong>Actionable Suggestion:</strong> ${fb.actionableSuggestion}</div>
+    </div>
+  `).join('')}
+
+  ${studentNotes ? `
+    <h2>9. Student Notes & Human Review Comments</h2>
+    <div class="card">
+      <p>${studentNotes}</p>
+    </div>
+  ` : ''}
+
+  <div class="footer">
+    Synthesized and Exported by ResearchFlow AI — Multi-Agent Academic Research OS<br>
+    Document generated on ${new Date().toLocaleDateString()} for Plan ${plan.projectId}
+  </div>
+
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+    } else {
+      // Fallback: If popup blocker prevents window.open, trigger blob download
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ResearchFlow_Full_Plan_${plan.projectId}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function exportPlanMarkdown() {
     if (!plan) return;
 
     const lines: string[] = [
@@ -205,14 +547,33 @@ export const FinalPlan: React.FC = () => {
   }
 
   if (error && !plan) {
-    return <div role="alert" className="p-8 text-sm text-rose-300">{error}</div>;
+    return (
+      <div className="space-y-4 p-8 text-center">
+        <div role="alert" className="text-sm text-rose-300">{error}</div>
+        <div className="flex justify-center gap-3">
+          <Button variant="secondary" onClick={() => navigate('/history')}>
+            Back to Research History
+          </Button>
+          <Button variant="primary" onClick={() => navigate('/research')}>
+            Start Research
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!plan) {
     return (
       <div className="space-y-4 p-8 text-center">
         <p className="text-slate-300">No research workflow has been run yet.</p>
-        <Button variant="primary" onClick={() => window.location.assign('/research')}>Start Research</Button>
+        <div className="flex justify-center gap-3">
+          <Button variant="secondary" onClick={() => navigate('/history')}>
+            View History
+          </Button>
+          <Button variant="primary" onClick={() => navigate('/research')}>
+            Start Research
+          </Button>
+        </div>
       </div>
     );
   }
@@ -226,6 +587,19 @@ export const FinalPlan: React.FC = () => {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
+      {workflowIdParam && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/history')}
+            icon={<ArrowLeft className="w-4 h-4" />}
+          >
+            Back to Research History
+          </Button>
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-blue-950/60 via-slate-900 to-indigo-950/60 border border-blue-500/30 rounded-2xl p-6 md:p-8 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -237,10 +611,14 @@ export const FinalPlan: React.FC = () => {
               <span className="text-xs text-slate-400 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" /> Generated: {plan.generatedDate}
               </span>
+              {workflowIdParam && (
+                <Badge variant="blue" size="sm">Historical Record</Badge>
+              )}
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
               Final Synthesized Research Plan
             </h1>
+
             <p className="text-xs md:text-sm text-slate-300 mt-1 max-w-3xl leading-relaxed">
               Topic: <strong className="text-white">{plan.topic}</strong>
             </p>
@@ -248,8 +626,21 @@ export const FinalPlan: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             {approvalBadge}
-            <Button variant="secondary" size="sm" onClick={exportPlan} icon={<Download className="w-4 h-4" />}>
-              Export Plan (LaTeX / PDF)
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={downloadFullPlanPDF}
+              icon={<FileDown className="w-4 h-4" />}
+            >
+              Download Full Research Plan (PDF)
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={exportPlanMarkdown}
+              icon={<Download className="w-4 h-4" />}
+            >
+              Export Markdown (.md)
             </Button>
           </div>
         </div>
@@ -562,6 +953,14 @@ export const FinalPlan: React.FC = () => {
           <div className="text-[11px] text-slate-400">Current status: {plan.humanApprovalStatus.replace('_', ' ').toUpperCase()}</div>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={downloadFullPlanPDF}
+            icon={<FileDown className="w-4 h-4 text-blue-400" />}
+          >
+            Download Full Plan (PDF)
+          </Button>
           <Button variant="danger" size="sm" onClick={() => handleDecision('rejected')}>
             Reject
           </Button>

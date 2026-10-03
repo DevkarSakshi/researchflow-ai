@@ -51,5 +51,7 @@ class Settings(BaseModel):
     smtp_password: str = os.getenv("SMTP_PASSWORD", "")
     smtp_from_email: str = os.getenv("SMTP_FROM_EMAIL", "no-reply@researchflow.ai")
 
+    google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
+
 
 settings = Settings()

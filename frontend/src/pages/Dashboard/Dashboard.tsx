@@ -1,7 +1,8 @@
 import React from 'react';
 
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Bot, BookOpen, Clock, Award, ArrowRight, Play } from 'lucide-react';
+import { Bot, BookOpen, Clock, Award, ArrowRight, Play, History } from 'lucide-react';
+
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
@@ -59,10 +60,14 @@ export const Dashboard: React.FC = () => {
           <Button variant="primary" onClick={() => navigate('/research')} icon={<Play className="w-4 h-4" />}>
             Trigger Agent Workflow
           </Button>
+          <Button variant="secondary" onClick={() => navigate('/history')} icon={<History className="w-4 h-4 text-amber-400" />}>
+            Research History
+          </Button>
           <Button variant="secondary" onClick={() => navigate('/academic')}>
             Academic Tasks
           </Button>
         </div>
+
       </div>
 
       {/* Metric Cards */}

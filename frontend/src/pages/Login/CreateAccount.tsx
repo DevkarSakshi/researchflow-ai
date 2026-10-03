@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Cpu, Lock, User, CheckCircle2, Copy, Check, ArrowRight, Sparkles } from 'lucide-react';
+import { Cpu, Lock, User, CheckCircle2, Copy, Check, ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '../../components/common/Button';
+import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
 import { request } from '../../services/api';
 
 export const CreateAccount: React.FC = () => {
@@ -12,6 +13,8 @@ export const CreateAccount: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -200,6 +203,39 @@ export const CreateAccount: React.FC = () => {
             </Button>
           </form>
         )}
+
+        {/* Google Error Message */}
+        {!generatedId && googleError && (
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 text-xs flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+            <div className="flex-1 leading-relaxed">{googleError}</div>
+          </div>
+        )}
+
+        {/* Google Signup Divider and Button */}
+        {!generatedId && (
+          <>
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-slate-800 w-full" />
+              <span className="bg-slate-900 px-3 text-[11px] uppercase tracking-wider text-slate-500 font-mono shrink-0">
+                or sign up with
+              </span>
+              <div className="border-t border-slate-800 w-full" />
+            </div>
+
+            <GoogleSignInButton
+              text="signup_with"
+              onSuccess={(data) => {
+                localStorage.setItem('researchflow_token', data.access_token);
+                localStorage.setItem('researchflow_id', data.researchflow_id);
+                localStorage.setItem('researchflow_name', data.name);
+                navigate('/dashboard');
+              }}
+              onError={(msg) => setGoogleError(msg)}
+            />
+          </>
+        )}
+
 
         {/* Back to Login */}
         <div className="pt-2 border-t border-slate-800/80 text-center text-xs text-slate-400">

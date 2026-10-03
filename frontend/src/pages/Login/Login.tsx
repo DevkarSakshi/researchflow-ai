@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Cpu, Lock, UserCheck, ArrowRight, KeyRound, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
+import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
 import { request } from '../../services/api';
 
 export const Login: React.FC = () => {
@@ -10,7 +11,9 @@ export const Login: React.FC = () => {
   const [researchFlowId, setResearchFlowId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
+
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
@@ -143,6 +146,36 @@ export const Login: React.FC = () => {
           </Button>
         </form>
 
+        {/* Google Error Message */}
+        {googleError && (
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 text-xs flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+            <div className="flex-1 leading-relaxed">{googleError}</div>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="relative flex items-center justify-center">
+          <div className="border-t border-slate-800 w-full" />
+          <span className="bg-slate-900 px-3 text-[11px] uppercase tracking-wider text-slate-500 font-mono shrink-0">
+            or continue with
+          </span>
+          <div className="border-t border-slate-800 w-full" />
+        </div>
+
+        {/* Google Sign In */}
+        <GoogleSignInButton
+          text="continue_with"
+          disabled={isLoading}
+          onSuccess={(data) => {
+            localStorage.setItem('researchflow_token', data.access_token);
+            localStorage.setItem('researchflow_id', data.researchflow_id);
+            localStorage.setItem('researchflow_name', data.name);
+            navigate('/dashboard');
+          }}
+          onError={(msg) => setGoogleError(msg)}
+        />
+
         {/* Create Account Link */}
         <div className="pt-2 border-t border-slate-800/80 text-center text-xs text-slate-400">
           Don't have a ResearchFlow ID yet?{' '}
@@ -150,6 +183,7 @@ export const Login: React.FC = () => {
             Create Account
           </Link>
         </div>
+
 
         <div className="text-center text-[11px] text-slate-500 bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/60">
           Use your ResearchFlow ID and password to sign in.

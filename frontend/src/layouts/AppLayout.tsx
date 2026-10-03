@@ -19,8 +19,10 @@ import {
   LogOut,
   Sun,
   Moon,
-  Laptop
+  Laptop,
+  History
 } from 'lucide-react';
+
 import { API_BASE_URL, request } from '../services/api';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
@@ -99,6 +101,7 @@ export const AppLayout: React.FC = () => {
   const navItems = [
     { to: '/dashboard', label: 'Main Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { to: '/workspace', label: 'Research Workspace', icon: <Bot className="w-4 h-4 text-blue-400" /> },
+    { to: '/history', label: 'Research History', icon: <History className="w-4 h-4 text-amber-400" /> },
     { to: '/final-plan', label: 'Final Research Plan', icon: <FileCheck className="w-4 h-4 text-emerald-400" /> },
     { to: '/papers', label: 'Paper Intelligence', icon: <BookOpen className="w-4 h-4" /> },
     { to: '/comparison', label: 'Comparison Matrix', icon: <GitCompare className="w-4 h-4" /> },
@@ -109,6 +112,7 @@ export const AppLayout: React.FC = () => {
     { to: '/academic', label: 'Academic Workflow (4)', icon: <GraduationCap className="w-4 h-4" /> },
     { to: '/profile', label: 'Student Profile', icon: <User className="w-4 h-4" /> },
   ];
+
 
   function handleLogout() {
     if (confirm('Are you sure you want to log out of your ResearchFlow workspace?')) {

@@ -10,8 +10,10 @@ import {
   FileUp,
   X,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  History
 } from 'lucide-react';
+
 import { useAgents } from '../../hooks/useAgents';
 import { AgentWorkflowVisualizer } from '../../components/agents/AgentWorkflowVisualizer';
 import { AgentStatusCard } from '../../components/agents/AgentStatusCard';
@@ -92,12 +94,21 @@ export const Research: React.FC = () => {
           <Button
             variant="secondary"
             size="sm"
+            onClick={() => navigate('/history')}
+            icon={<History className="w-4 h-4 text-amber-400" />}
+          >
+            Research History
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => navigate('/final-plan')}
             icon={<FileText className="w-4 h-4 text-emerald-400" />}
           >
             Final Research Plan
           </Button>
         </div>
+
       </div>
 
       {/* Input Section: Dual Input (PDF Upload Zone + Topic Input) */}

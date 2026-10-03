@@ -5,6 +5,8 @@ from database.paper_repository import store_uploaded_paper
 from database.research_repository import (
     create_research_workflow as save_research_workflow,
     get_latest_workflow_by_user,
+    get_workflows_by_user,
+    get_user_workflow_by_id,
     update_research_workflow,
     update_approval_status,
 )
@@ -226,3 +228,39 @@ def update_research_approval(
         "workflow": updated,
         "academic": academic_state,
     }
+
+
+def get_user_research_history(researchflow_id: str) -> list[dict]:
+    """
+    Retrieve all research workflows for a user formatted for research history.
+    """
+    workflows = get_workflows_by_user(researchflow_id)
+    history = []
+    for wf in workflows:
+        result = wf.get("result") or {}
+        paper_analysis = result.get("paper_analysis") or []
+        pdfs = wf.get("pdfs") or []
+        created_at_val = wf.get("created_at")
+        created_at_iso = (
+            created_at_val.isoformat()
+            if hasattr(created_at_val, "isoformat")
+            else str(created_at_val) if created_at_val else None
+        )
+
+        history.append({
+            "id": wf.get("id") or str(wf.get("_id")),
+            "research_problem": wf.get("research_problem") or "",
+            "status": wf.get("status") or "pending",
+            "approval_status": wf.get("approval_status") or "pending",
+            "paper_count": len(paper_analysis) if paper_analysis else len(pdfs),
+            "created_at": created_at_iso,
+            "has_final_plan": bool(result.get("final_research_plan")),
+        })
+    return history
+
+
+def get_user_workflow(researchflow_id: str, workflow_id: str) -> dict | None:
+    """
+    Retrieve a specific research workflow for a user with user isolation.
+    """
+    return get_user_workflow_by_id(researchflow_id, workflow_id)

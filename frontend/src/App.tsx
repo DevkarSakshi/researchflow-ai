@@ -6,6 +6,7 @@ import { CreateAccount } from './pages/Login/CreateAccount';
 import { ResetPassword } from './pages/Login/ResetPassword';
 import { Dashboard } from './pages/Dashboard/Dashboard';
 import { Research } from './pages/Research/Research';
+import { ResearchHistory } from './pages/Research/ResearchHistory';
 import { FinalPlan } from './pages/FinalPlan/FinalPlan';
 import { Papers } from './pages/Papers/Papers';
 import { Comparison } from './pages/Comparison/Comparison';
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'workspace', element: <Research /> },
       { path: 'research', element: <Research /> },
+      { path: 'history', element: <ResearchHistory /> },
       { path: 'final-plan', element: <FinalPlan /> },
       { path: 'papers', element: <Papers /> },
       { path: 'comparison', element: <Comparison /> },

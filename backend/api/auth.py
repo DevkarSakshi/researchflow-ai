@@ -6,9 +6,11 @@ from schemas.auth import (
     LoginRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    GoogleAuthRequest,
 )
 from services.auth_service import register_user
 from services.login_service import login_user
+from services.google_auth_service import authenticate_google_user
 from services.password_reset_service import (
     request_password_reset,
     verify_reset_token,
@@ -56,6 +58,24 @@ def login(request: LoginRequest):
             status_code=401,
             detail=str(error),
         )
+
+
+@router.post("/google")
+def google_auth(request: GoogleAuthRequest):
+    try:
+        result = authenticate_google_user(request.credential)
+        return result
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Google authentication failed: {error}",
+        )
+
 
 
 @router.post("/forgot-password")

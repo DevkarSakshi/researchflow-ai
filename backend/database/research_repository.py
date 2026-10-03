@@ -36,22 +36,54 @@ def get_latest_workflow_by_user(researchflow_id: str):
 
 def get_workflows_by_user(researchflow_id: str):
     """
-    Get all research workflows belonging to a student.
+    Get all research workflows belonging to a student, newest first.
     """
-    return list(
+    workflows = list(
         research_collection.find(
             {"researchflow_id": researchflow_id}
-        )
+        ).sort("created_at", -1)
     )
+    for wf in workflows:
+        wf["id"] = str(wf["_id"])
+        wf["_id"] = str(wf["_id"])
+    return workflows
 
 
 def get_workflow_by_id(workflow_id):
     """
     Get a research workflow using its MongoDB ID.
     """
-    return research_collection.find_one(
+    workflow = research_collection.find_one(
         {"_id": workflow_id}
     )
+    if workflow is not None:
+        workflow["id"] = str(workflow["_id"])
+        workflow["_id"] = str(workflow["_id"])
+    return workflow
+
+
+def get_user_workflow_by_id(researchflow_id: str, workflow_id: str):
+    """
+    Get a specific research workflow belonging to a student.
+    Ensures user-level isolation.
+    """
+    from bson import ObjectId
+    query = {"researchflow_id": researchflow_id}
+    try:
+        query["_id"] = ObjectId(workflow_id)
+    except Exception:
+        query["_id"] = workflow_id
+
+    workflow = research_collection.find_one(query)
+    if workflow is None and isinstance(query["_id"], ObjectId):
+        # Fallback to string id if stored as string
+        query["_id"] = workflow_id
+        workflow = research_collection.find_one(query)
+
+    if workflow is not None:
+        workflow["id"] = str(workflow["_id"])
+        workflow["_id"] = str(workflow["_id"])
+    return workflow
 
 
 def update_approval_status(

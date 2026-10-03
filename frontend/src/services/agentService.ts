@@ -7,6 +7,7 @@ import type {
     PersistedResearchWorkflow,
     ResearchAgent,
     ResearchGap,
+    ResearchHistoryItem,
     ResearchPaper,
     ResearchWorkflowResult,
     ReviewerFeedbackItem,
@@ -17,9 +18,21 @@ export interface LatestWorkflowResponse {
     workflow: PersistedResearchWorkflow | null;
 }
 
+export interface ResearchHistoryResponse {
+    history: ResearchHistoryItem[];
+}
+
 export const agentService = {
     getLatestWorkflow(): Promise<LatestWorkflowResponse> {
         return request<LatestWorkflowResponse>('/research/latest');
+    },
+
+    getWorkflowById(workflowId: string): Promise<LatestWorkflowResponse> {
+        return request<LatestWorkflowResponse>(`/research/${encodeURIComponent(workflowId)}`);
+    },
+
+    getResearchHistory(): Promise<ResearchHistoryResponse> {
+        return request<ResearchHistoryResponse>('/research/history');
     },
 
     async getAllAgents(): Promise<ResearchAgent[]> {
@@ -35,8 +48,17 @@ export const agentService = {
         return { workflowId: response.workflow.id, status: response.workflow.status };
     },
 
-    async getPapers(): Promise<ResearchPaper[]> {
-        const result = await this.getLatestResult();
+    async getWorkflow(workflowId?: string): Promise<PersistedResearchWorkflow | null> {
+        if (workflowId) {
+            const res = await this.getWorkflowById(workflowId);
+            return res.workflow;
+        }
+        const res = await this.getLatestWorkflow();
+        return res.workflow;
+    },
+
+    async getPapers(workflowId?: string): Promise<ResearchPaper[]> {
+        const result = await this.getLatestResult(workflowId);
         if (!result) return [];
 
         const metadata = new Map<string, Record<string, unknown>>();
@@ -69,8 +91,8 @@ export const agentService = {
         });
     },
 
-    async getComparisonMatrix(): Promise<ComparisonMatrixRow[]> {
-        const result = await this.getLatestResult();
+    async getComparisonMatrix(workflowId?: string): Promise<ComparisonMatrixRow[]> {
+        const result = await this.getLatestResult(workflowId);
         return (result?.comparison ?? []).map(row => ({
             paperId: textValue(row.paper_id),
             paperTitle: textValue(row.title),
@@ -83,8 +105,8 @@ export const agentService = {
         }));
     },
 
-    async getGapsAndIdeas(): Promise<{ gaps: ResearchGap[]; ideas: SuggestedIdea[] }> {
-        const result = await this.getLatestResult();
+    async getGapsAndIdeas(workflowId?: string): Promise<{ gaps: ResearchGap[]; ideas: SuggestedIdea[] }> {
+        const result = await this.getLatestResult(workflowId);
         return {
             gaps: (result?.research_gaps ?? []).map(gap => ({
                 id: gap.gap_id,
@@ -111,8 +133,8 @@ export const agentService = {
         };
     },
 
-    async getMethodology(): Promise<MethodologyStep[]> {
-        const result = await this.getLatestResult();
+    async getMethodology(workflowId?: string): Promise<MethodologyStep[]> {
+        const result = await this.getLatestResult(workflowId);
         const steps = Array.isArray(result?.methodology.steps) ? result.methodology.steps : [];
         return steps.map((step, index) => ({
             stepNumber: numberValue(step.step_number) || index + 1,
@@ -124,8 +146,8 @@ export const agentService = {
         }));
     },
 
-    async getCitations(): Promise<CitationItem[]> {
-        const result = await this.getLatestResult();
+    async getCitations(workflowId?: string): Promise<CitationItem[]> {
+        const result = await this.getLatestResult(workflowId);
         return (result?.citations ?? []).flatMap(citation => (
             [
                 { format: 'APA' as const, rawCitation: citation.apa7 },
@@ -144,8 +166,8 @@ export const agentService = {
         ));
     },
 
-    async getReviewerFeedback(): Promise<ReviewerFeedbackItem[]> {
-        const result = await this.getLatestResult();
+    async getReviewerFeedback(workflowId?: string): Promise<ReviewerFeedbackItem[]> {
+        const result = await this.getLatestResult(workflowId);
         return (result?.reviewer_feedback.checks ?? []).map(check => ({
             category: reviewerCategory(check.id),
             severity: check.status === 'passed' ? 'low' : 'high',
@@ -157,8 +179,8 @@ export const agentService = {
         }));
     },
 
-    async getFinalPlan(): Promise<FinalResearchPlan | null> {
-        const { workflow } = await this.getLatestWorkflow();
+    async getFinalPlan(workflowId?: string): Promise<FinalResearchPlan | null> {
+        const workflow = await this.getWorkflow(workflowId);
         if (!workflow?.result) return null;
         const result = workflow.result;
         const plan = result.final_research_plan;
@@ -189,10 +211,11 @@ export const agentService = {
         };
     },
 
-    async getLatestResult(): Promise<ResearchWorkflowResult | null> {
-        const { workflow } = await this.getLatestWorkflow();
+    async getLatestResult(workflowId?: string): Promise<ResearchWorkflowResult | null> {
+        const workflow = await this.getWorkflow(workflowId);
         return workflow?.result ?? null;
     },
+
 
     submitPlanApproval(
         decision: 'approved' | 'rejected' | 'changes_requested',

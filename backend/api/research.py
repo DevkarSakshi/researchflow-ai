@@ -97,3 +97,38 @@ def update_research_approval(
             status_code=400,
             detail=str(error),
         )
+
+
+@router.get("/history")
+def get_research_history(
+    researchflow_id: str = Depends(
+        get_current_researchflow_id
+    ),
+):
+    """
+    Get all past research workflows for the authenticated user.
+    """
+    return {
+        "history": research_service.get_user_research_history(researchflow_id),
+    }
+
+
+@router.get("/{workflow_id}")
+def get_research_by_id(
+    workflow_id: str,
+    researchflow_id: str = Depends(
+        get_current_researchflow_id
+    ),
+):
+    """
+    Get a specific past research workflow for the authenticated user.
+    """
+    workflow = research_service.get_user_workflow(researchflow_id, workflow_id)
+    if not workflow:
+        raise HTTPException(
+            status_code=404,
+            detail="Research workflow not found or access denied.",
+        )
+    return {
+        "workflow": workflow,
+    }

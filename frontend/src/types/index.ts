@@ -123,6 +123,17 @@ export interface PersistedResearchWorkflow {
   created_at?: string;
 }
 
+export interface ResearchHistoryItem {
+  id: string;
+  research_problem: string;
+  status: string;
+  approval_status: string;
+  paper_count: number;
+  created_at?: string | null;
+  has_final_plan: boolean;
+}
+
+
 export type ResearchAgentId =
   | 'orchestrator'
   | 'literature'
