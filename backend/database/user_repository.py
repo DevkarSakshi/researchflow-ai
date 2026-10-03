@@ -51,3 +51,49 @@ def get_user_by_researchflow_id(researchflow_id: str):
     return users_collection.find_one(
         {"researchflow_id": researchflow_id}
     )
+
+
+def set_password_reset_token(email: str, token_hash: str, expires_at):
+    """
+    Save the hashed reset token and expiration on the user document.
+    """
+    return users_collection.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "password_reset": {
+                    "token_hash": token_hash,
+                    "expires_at": expires_at,
+                    "used": False,
+                }
+            }
+        },
+        collation=EMAIL_COLLATION,
+    )
+
+
+def get_user_by_reset_token_hash(token_hash: str):
+    """
+    Look up user by active password reset token hash.
+    """
+    return users_collection.find_one(
+        {"password_reset.token_hash": token_hash}
+    )
+
+
+def update_user_password_and_clear_token(user_id, new_password_hash: str):
+    """
+    Update the user's password and invalidate the password reset token.
+    """
+    return users_collection.update_one(
+        {"_id": user_id},
+        {
+            "$set": {
+                "password_hash": new_password_hash,
+                "password_reset.used": True,
+            },
+            "$unset": {
+                "password_reset.token_hash": "",
+            },
+        },
+    )

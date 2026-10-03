@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Cpu, Lock, UserCheck, ArrowRight, KeyRound } from 'lucide-react';
+import { Cpu, Lock, UserCheck, ArrowRight, KeyRound, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
 import { request } from '../../services/api';
@@ -11,6 +11,10 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
+  const [resetErrorMessage, setResetErrorMessage] = useState<string | null>(null);
 
   async function handleLogin(e: React.FormEvent) {
   e.preventDefault();
@@ -53,6 +57,32 @@ export const Login: React.FC = () => {
   }
 }
 
+  async function handleSendResetLink(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      setResetErrorMessage('Please enter your registered email address.');
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+      setResetErrorMessage(null);
+      setResetSuccessMessage(null);
+
+      const result = await request<{ message: string }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email: resetEmail.trim() }),
+      });
+
+      setResetSuccessMessage(result.message);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Unable to request password reset.';
+      setResetErrorMessage(errorMsg);
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
@@ -73,8 +103,8 @@ export const Login: React.FC = () => {
             </label>
             <div className="relative">
               <UserCheck className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={researchFlowId}
                 onChange={e => setResearchFlowId(e.target.value)}
                 placeholder="e.g. RF-8W66SL"
@@ -97,8 +127,8 @@ export const Login: React.FC = () => {
             </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Enter your password"
@@ -127,9 +157,13 @@ export const Login: React.FC = () => {
       </div>
 
       {/* Forgot Password Modal */}
-      <Modal 
-        isOpen={forgotModalOpen} 
-        onClose={() => setForgotModalOpen(false)} 
+      <Modal
+        isOpen={forgotModalOpen}
+        onClose={() => {
+          setForgotModalOpen(false);
+          setResetErrorMessage(null);
+          setResetSuccessMessage(null);
+        }}
         title="Reset ResearchFlow Password"
         maxWidth="md"
       >
@@ -139,34 +173,86 @@ export const Login: React.FC = () => {
             <div>
               <div className="font-semibold text-white">Institutional Identity Recovery</div>
               <div className="text-slate-400 mt-0.5">
-                ResearchFlow IDs are linked to academic research labs. You can recover access using your registered student/faculty email address.
+                ResearchFlow IDs are linked to academic research labs. Enter your registered email address to receive a secure password reset link.
               </div>
             </div>
           </div>
-          <div>
-            <label className="block text-slate-300 mb-1 font-medium">Academic Email</label>
-            <input 
-              type="email" 
-              placeholder="e.g. aishwari.s@cs.university.edu"
-              defaultValue="aishwari.s@cs.university.edu"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" size="sm" onClick={() => setForgotModalOpen(false)}>
-              Close
-            </Button>
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={() => {
-                alert('Password reset link sent to registered academic email! For this frontend demo, use ResearchFlow ID: RF-9021-STANFORD.');
-                setForgotModalOpen(false);
-              }}
-            >
-              Send Reset Link
-            </Button>
-          </div>
+
+          {resetSuccessMessage ? (
+            <div className="space-y-4">
+              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-300 flex items-start gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-emerald-200">Reset Request Dispatched</div>
+                  <div className="text-slate-300 mt-1 leading-relaxed">
+                    {resetSuccessMessage}
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Please check your inbox or spam folder for an email containing your password reset link.
+              </p>
+              <div className="flex justify-end pt-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setForgotModalOpen(false);
+                    setResetSuccessMessage(null);
+                    setResetErrorMessage(null);
+                  }}
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSendResetLink} className="space-y-4">
+              {resetErrorMessage && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>{resetErrorMessage}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-slate-300 mb-1 font-medium">Academic or Institutional Email</label>
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={e => setResetEmail(e.target.value)}
+                  placeholder="e.g. researcher@university.edu"
+                  required
+                  disabled={resetLoading}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={resetLoading}
+                  onClick={() => {
+                    setForgotModalOpen(false);
+                    setResetErrorMessage(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={resetLoading}
+                  icon={resetLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : undefined}
+                >
+                  {resetLoading ? 'Sending Reset Link...' : 'Send Reset Link'}
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
       </Modal>
     </div>

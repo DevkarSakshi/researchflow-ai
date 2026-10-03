@@ -10,3 +10,12 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     researchflow_id: str
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str

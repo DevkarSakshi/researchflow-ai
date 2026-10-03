@@ -3,6 +3,7 @@ import { AppLayout, loadAppData } from './layouts/AppLayout';
 
 import { Login } from './pages/Login/Login';
 import { CreateAccount } from './pages/Login/CreateAccount';
+import { ResetPassword } from './pages/Login/ResetPassword';
 import { Dashboard } from './pages/Dashboard/Dashboard';
 import { Research } from './pages/Research/Research';
 import { FinalPlan } from './pages/FinalPlan/FinalPlan';
@@ -18,6 +19,7 @@ import { Profile } from './pages/Profile/Profile';
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/create-account', element: <CreateAccount /> },
+  { path: '/reset-password', element: <ResetPassword /> },
   {
     id: 'app',
     path: '/',
