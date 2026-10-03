@@ -311,6 +311,49 @@ class ResearchAgentTests(unittest.TestCase):
                 )
         persist_approval.assert_not_called()
 
+    def test_research_history_route_returns_user_workflows(self):
+        fake_history = [
+            {
+                "id": "wf-1",
+                "research_problem": "Quantum Graph Learning",
+                "status": "completed",
+                "approval_status": "approved",
+                "paper_count": 3,
+                "created_at": "2026-10-01T10:00:00Z",
+                "has_final_plan": True,
+            }
+        ]
+        app.dependency_overrides[get_current_researchflow_id] = lambda: "RF-student-1"
+        try:
+            with patch.object(research_service, "get_user_research_history", return_value=fake_history) as mock_hist:
+                response = TestClient(app).get("/research/history")
+                mock_hist.assert_called_once_with("RF-student-1")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(response.json()["history"]), 1)
+                self.assertEqual(response.json()["history"][0]["id"], "wf-1")
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_research_by_id_route_isolates_user(self):
+        fake_wf = {
+            "id": "wf-123",
+            "researchflow_id": "RF-student-1",
+            "research_problem": "Medical Imaging",
+            "status": "completed",
+        }
+        app.dependency_overrides[get_current_researchflow_id] = lambda: "RF-student-1"
+        try:
+            with patch.object(research_service, "get_user_workflow", return_value=fake_wf):
+                response = TestClient(app).get("/research/wf-123")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["workflow"]["id"], "wf-123")
+
+            with patch.object(research_service, "get_user_workflow", return_value=None):
+                response = TestClient(app).get("/research/wf-other-user")
+                self.assertEqual(response.status_code, 404)
+        finally:
+            app.dependency_overrides.clear()
+
 
 if __name__ == "__main__":
     unittest.main()
