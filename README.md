@@ -161,9 +161,9 @@ The project aims to explore how specialized AI agents can collaborate, share con
 
 ## 📌 Project Status
 
-**Status:** Proposed / Under Development
+**Status:** Under Development —
 
-The system is currently being developed as an academic major project. The proposed architecture and multi-agent workflow will be implemented incrementally.
+Core research workflow, authentication, research history, academic workflow features, and supporting platform functionality are being implemented incrementally.
 
 ---
 
